@@ -1,26 +1,158 @@
 @import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-surface: #131313;
+  --color-surface-low: #1c1b1b;
+  --color-surface-container: #201f1f;
+  --color-surface-high: #2a2a2a;
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-dim: #a8a39e;
+  --color-parchment: #d0c5af;
+  --color-gold: #f2ca50;
+  --color-gold-dim: #d4af37;
+  --color-gold-dark: #735c00;
+  --color-outline: #99907c;
+  --color-outline-faint: #4d4635;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-inter);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #131313;
+  color: #e5e2e1;
+  font-family: var(--font-inter), Inter, sans-serif;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+/* ====== Utilidades globales ====== */
+
+.label-caps {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.gold-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.35), transparent);
+}
+
+.btn-primary {
+  background: #f2ca50;
+  color: #3c2f00;
+  padding: 14px 28px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-size: 12px;
+  transition: background 0.2s;
+  display: inline-block;
+}
+.btn-primary:hover {
+  background: #ffe088;
+}
+
+.btn-secondary {
+  border: 1px solid #f2ca50;
+  color: #f2ca50;
+  padding: 13px 27px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-size: 12px;
+  transition: background 0.2s;
+  display: inline-block;
+}
+.btn-secondary:hover {
+  background: rgba(242, 202, 80, 0.08);
+}
+
+/* ====== Tier badges ====== */
+
+.tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.tier::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  background: currentColor;
+  flex-shrink: 0;
+}
+.tier-mitico {
+  color: #f2ca50;
+  border-color: #f2ca50;
+  background: rgba(242, 202, 80, 0.08);
+}
+.tier-excepcional {
+  color: #d4af37;
+  border-color: #d4af37;
+  background: rgba(212, 175, 55, 0.06);
+}
+.tier-raro {
+  color: #c9c6c0;
+  border-color: #c9c6c0;
+  background: rgba(201, 198, 192, 0.05);
+}
+.tier-comun {
+  color: #99907c;
+  border-color: #99907c;
+  background: transparent;
+}
+
+/* ====== Artifact card hover ====== */
+
+.artifact-card {
+  transition: all 0.3s ease;
+  border-top: 1px solid transparent;
+}
+.artifact-card:hover {
+  border-top: 1px solid #d4af37;
+  background-color: #1c1b1b;
+}
+
+/* ====== Input museo ====== */
+
+.input-museum {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #4d4635;
+  color: #e5e2e1;
+  padding: 10px 0;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+.input-museum:focus {
+  outline: none;
+  border-bottom-color: #f2ca50;
+}
+
+/* ====== Chip filtro ====== */
+
+.chip {
+  border: 1px solid #4d4635;
+  padding: 6px 14px;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  cursor: pointer;
+  background: transparent;
+  color: #a8a39e;
+}
+.chip:hover,
+.chip.active {
+  border-color: #f2ca50;
+  color: #f2ca50;
 }
