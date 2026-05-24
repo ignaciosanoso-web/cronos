@@ -1,8 +1,28 @@
-import { PrismaClient, Tier, Era, Category, Confidence, MomentStatus } from '@prisma/client'
+import {
+  PrismaClient,
+  Tier,
+  Era,
+  Category,
+  Confidence,
+  MomentStatus,
+  UserRole,
+} from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
+  // Admin fundador
+  await prisma.user.upsert({
+    where: { email: 'fundadorcronos@gmail.com' },
+    update: { role: UserRole.ADMIN },
+    create: {
+      email: 'fundadorcronos@gmail.com',
+      name: 'Fundador Cronos',
+      role: UserRole.ADMIN,
+    },
+  })
+  console.log('✓ Admin creado/actualizado')
+
   await prisma.contextEvent.deleteMany()
   await prisma.moment.deleteMany()
 
