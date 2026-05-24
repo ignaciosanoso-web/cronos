@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "prepare": "husky",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "open-auction": "tsx scripts/open-test-auction.ts"
   },
   "prisma": {
     "seed": "npm run seed"
