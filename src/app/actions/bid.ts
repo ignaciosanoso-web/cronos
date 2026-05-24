@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { stripe } from '@/lib/stripe'
 import { revalidatePath } from 'next/cache'
 import type { Tier } from '@prisma/client'
 
@@ -14,16 +15,31 @@ const TIER_MECHANICS: Record<Tier, { triggerMin: number; extensionMin: number }>
 
 type BidResult = { success: true; extended: boolean; extensionMin: number } | { error: string }
 
-export async function placeBid(auctionId: string, amountCents: number): Promise<BidResult> {
+export async function placeBid(
+  auctionId: string,
+  amountCents: number,
+  stripePaymentIntentId: string
+): Promise<BidResult> {
   try {
     const session = await auth()
     if (!session?.user?.id) return { error: 'Debes iniciar sesión para pujar.' }
+
+    // Verificar que el PaymentIntent fue autorizado correctamente
+    const pi = await stripe.paymentIntents.retrieve(stripePaymentIntentId)
+    if (pi.status !== 'requires_capture') {
+      return { error: 'El pago no fue autorizado correctamente.' }
+    }
+    if (pi.amount !== amountCents) {
+      return { error: 'El importe del pago no coincide con la puja.' }
+    }
 
     const auction = await prisma.auction.findUnique({
       where: { id: auctionId },
       include: {
         moment: { select: { tier: true, slug: true } },
-        currentBid: { select: { id: true, amount: true, userId: true } },
+        currentBid: {
+          select: { id: true, amount: true, userId: true, stripePaymentIntentId: true },
+        },
       },
     })
 
@@ -47,9 +63,7 @@ export async function placeBid(auctionId: string, amountCents: number): Promise<
       return { error: `La puja mínima es ${minEur} €.` }
     }
 
-    // TODO (Sprint Stripe): crear PaymentIntent con capture_method: 'manual' aquí.
-    // Si falla el hold, retornar { error: 'Tarjeta rechazada.' } antes de registrar la puja.
-
+    // Lógica anti-sniping
     const mechanics = TIER_MECHANICS[auction.moment.tier]
     const triggerMs = mechanics.triggerMin * 60 * 1000
     const extensionMs = mechanics.extensionMin * 60 * 1000
@@ -61,14 +75,15 @@ export async function placeBid(auctionId: string, amountCents: number): Promise<
       : auction.closesAt
     const newStatus = triggeredExtension ? ('EXTENDING' as const) : auction.status
 
+    const oldPaymentIntentId = auction.currentBid?.stripePaymentIntentId ?? null
+
+    // Transacción atómica: marcar OUTBID, crear puja, actualizar subasta
     await prisma.$transaction(async (tx) => {
-      // Marcar puja anterior como OUTBID
       if (auction.currentBidId) {
         await tx.bid.update({
           where: { id: auction.currentBidId },
           data: { status: 'OUTBID' },
         })
-        // TODO (Sprint Stripe): liberar el PaymentIntent de la puja anterior aquí.
       }
 
       const bid = await tx.bid.create({
@@ -76,6 +91,7 @@ export async function placeBid(auctionId: string, amountCents: number): Promise<
           auctionId,
           userId: session.user.id,
           amount: amountCents,
+          stripePaymentIntentId,
           status: 'ACTIVE',
           triggeredExtension,
         },
@@ -90,6 +106,15 @@ export async function placeBid(auctionId: string, amountCents: number): Promise<
         },
       })
     })
+
+    // Cancelar el PaymentIntent anterior (liberar el hold) — no es fatal si falla
+    if (oldPaymentIntentId) {
+      try {
+        await stripe.paymentIntents.cancel(oldPaymentIntentId)
+      } catch (e) {
+        console.error('[placeBid] No se pudo cancelar el PI anterior:', e)
+      }
+    }
 
     revalidatePath(`/momento/${auction.moment.slug}`)
 
