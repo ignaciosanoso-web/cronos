@@ -143,13 +143,21 @@ export const closeAuction = inngest.createFunction(
           data: { status: 'WON' },
         })
 
-        await tx.ownership.create({
-          data: {
+        // Upsert para idempotencia — si ya existe no falla en reintento
+        await tx.ownership.upsert({
+          where: {
+            momentId_serialNumber: {
+              momentId: auction.moment.id,
+              serialNumber: auction.serialNumber,
+            },
+          },
+          create: {
             momentId: auction.moment.id,
             userId: winner.userId,
             serialNumber: auction.serialNumber,
             acquisitionPrice: grossAmount,
           },
+          update: {},
         })
 
         await tx.moment.update({
@@ -157,44 +165,60 @@ export const closeAuction = inngest.createFunction(
           data: { status: 'IN_VAULT' },
         })
 
-        await tx.transaction.create({
-          data: {
-            kind: 'AUCTION_WIN',
-            momentId: auction.moment.id,
-            buyerId: winner.userId,
-            grossAmount,
-            cronosFee,
-            sellerNet: 0,
-            royaltyAmount: 0,
-            stripeChargeId: winner.stripePaymentIntentId ?? undefined,
-          },
+        // Solo crear Transaction si no existe ya para este auctionId
+        const existingTx = await tx.transaction.findFirst({
+          where: { stripeChargeId: winner.stripePaymentIntentId ?? undefined },
         })
+        if (!existingTx) {
+          await tx.transaction.create({
+            data: {
+              kind: 'AUCTION_WIN',
+              momentId: auction.moment.id,
+              buyerId: winner.userId,
+              grossAmount,
+              cronosFee,
+              sellerNet: 0,
+              royaltyAmount: 0,
+              stripeChargeId: winner.stripePaymentIntentId ?? undefined,
+            },
+          })
+        }
 
-        await tx.notification.create({
-          data: {
+        // Solo crear notificación si no existe ya
+        const existingNotif = await tx.notification.findFirst({
+          where: {
             userId: winner.userId,
             kind: 'AUCTION_WON',
-            payload: {
-              auctionId,
-              momentId: auction.moment.id,
-              momentSlug: auction.moment.slug,
-              amountCents: grossAmount,
-            },
+            payload: { path: ['auctionId'], equals: auctionId },
           },
         })
-
-        if (outbidUserIds.length > 0) {
-          await tx.notification.createMany({
-            data: outbidUserIds.map((userId) => ({
-              userId,
-              kind: 'AUCTION_LOST' as const,
+        if (!existingNotif) {
+          await tx.notification.create({
+            data: {
+              userId: winner.userId,
+              kind: 'AUCTION_WON',
               payload: {
                 auctionId,
                 momentId: auction.moment.id,
                 momentSlug: auction.moment.slug,
+                amountCents: grossAmount,
               },
-            })),
+            },
           })
+
+          if (outbidUserIds.length > 0) {
+            await tx.notification.createMany({
+              data: outbidUserIds.map((userId) => ({
+                userId,
+                kind: 'AUCTION_LOST' as const,
+                payload: {
+                  auctionId,
+                  momentId: auction.moment.id,
+                  momentSlug: auction.moment.slug,
+                },
+              })),
+            })
+          }
         }
       })
     })
