@@ -16,7 +16,7 @@ function getStripeInstance(): Stripe {
 export const stripe = new Proxy({} as Stripe, {
   get(_target, prop: string | symbol) {
     const instance = getStripeInstance()
-    const value = (instance as Record<string | symbol, unknown>)[prop]
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop]
     return typeof value === 'function'
       ? (value as (...a: unknown[]) => unknown).bind(instance)
       : value
