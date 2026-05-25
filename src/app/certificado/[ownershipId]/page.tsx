@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { TierBadge } from '@/components/ui/TierBadge'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
+import { PrintButton } from '@/components/ui/PrintButton'
 
 const TIER_LABELS: Record<string, string> = {
   MITICO: 'Mítico',
@@ -50,17 +51,8 @@ export default async function CertificatePage({
   return (
     <>
       {/* Print button — oculto al imprimir */}
-      <div className="no-print fixed top-6 right-6 z-50 flex gap-3">
-        <button
-          onClick={() => window.print()}
-          className="bg-[#f2ca50] text-[#3c2f00] px-5 py-2.5 text-[12px] font-semibold tracking-[0.15em] uppercase hover:bg-[#ffe088] transition-colors"
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ref={(el: any) => {
-            if (el) el.onclick = () => window.print()
-          }}
-        >
-          Imprimir / Guardar PDF
-        </button>
+      <div className="no-print fixed top-6 right-6 z-50">
+        <PrintButton />
       </div>
 
       <main className="min-h-screen bg-[#131313] flex items-center justify-center p-8 print:p-0 print:bg-white">
@@ -154,12 +146,12 @@ export default async function CertificatePage({
         </div>
       </main>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           .no-print { display: none !important; }
           body { background: white !important; }
         }
-      `}</style>
+      `}} />
     </>
   )
 }
