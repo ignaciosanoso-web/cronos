@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "NotifKind" ADD VALUE 'ROYALTY_EARNED';
