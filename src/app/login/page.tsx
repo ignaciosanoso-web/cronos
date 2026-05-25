@@ -16,11 +16,13 @@ export default async function LoginPage({
     <main className="min-h-screen bg-[#131313] flex items-center justify-center px-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-12">
-          <Link href="/" className="font-serif text-4xl font-bold text-[#f2ca50] inline-block mb-8">
-            Cronos
-          </Link>
+          <div className="mb-6">
+            <Link href="/" className="font-serif text-4xl font-bold text-[#f2ca50] inline-block">
+              Cronos
+            </Link>
+          </div>
           <div className="inline-block text-[11px] font-semibold tracking-[0.18em] uppercase text-[#f2ca50] border border-[#735c00] px-3 py-1 mb-6">
-            Acceso Curatorial
+            Acceso al Archivo
           </div>
           <h1 className="font-serif text-3xl font-bold text-[#e5e2e1] mb-3">Entra a tu Bóveda</h1>
           <p className="text-[#d0c5af] text-sm leading-relaxed">
