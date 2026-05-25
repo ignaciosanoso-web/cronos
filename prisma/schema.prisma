@@ -63,6 +63,7 @@ model User {
   email            String           @unique
   emailVerified    DateTime?
   name             String?
+  image            String?          // OAuth profile picture (required by Auth.js adapter)
   displayName      String?
   bio              String?          @db.Text
   avatarUrl        String?
