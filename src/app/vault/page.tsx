@@ -98,9 +98,17 @@ export default async function VaultPage() {
             Su colección privada de momentos históricos. Segura, autenticada y exclusivamente suya.
           </p>
         </div>
-        {session.user.email && (
-          <LabelCaps className="text-[#4d4635]">{session.user.email}</LabelCaps>
-        )}
+        <div className="flex flex-col items-end gap-2">
+          {session.user.email && (
+            <LabelCaps className="text-[#4d4635]">{session.user.email}</LabelCaps>
+          )}
+          <Link
+            href={`/curator/${session.user.id}`}
+            className="text-[11px] font-semibold tracking-[0.15em] uppercase text-[#99907c] hover:text-[#f2ca50] transition-colors"
+          >
+            Ver perfil público →
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

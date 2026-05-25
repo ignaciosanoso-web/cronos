@@ -8,40 +8,62 @@ import { LabelCaps } from '@/components/ui/LabelCaps'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import type { Tier } from '@prisma/client'
 
+const ERA_LABELS: Record<string, string> = {
+  PREHISTORIA: 'Prehistoria',
+  MUNDO_ANTIGUO: 'Mundo Antiguo',
+  EDAD_MEDIA: 'Edad Media',
+  RENACIMIENTO: 'Renacimiento',
+  ERA_INDUSTRIAL: 'Era Industrial',
+  ERA_ESPACIAL: 'Era Espacial',
+  ERA_DIGITAL: 'Era Digital',
+}
+
 async function getCuratorData(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      displayName: true,
-      bio: true,
-      avatarUrl: true,
-      createdAt: true,
-      ownerships: {
-        where: { isPublic: true },
-        include: {
-          moment: {
-            select: {
-              slug: true,
-              title: true,
-              year: true,
-              date: true,
-              era: true,
-              tier: true,
-              status: true,
-              description: true,
-              imageUrl: true,
-              totalCirculation: true,
-              basePrice: true,
+  const [user, royalties, allPublishedMoments] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        bio: true,
+        avatarUrl: true,
+        createdAt: true,
+        ownerships: {
+          where: { isPublic: true },
+          include: {
+            moment: {
+              select: {
+                slug: true,
+                title: true,
+                year: true,
+                date: true,
+                era: true,
+                tier: true,
+                status: true,
+                description: true,
+                imageUrl: true,
+                totalCirculation: true,
+                basePrice: true,
+              },
             },
           },
+          orderBy: { acquiredAt: 'desc' },
         },
-        orderBy: { acquiredAt: 'desc' },
       },
-    },
-  })
-  return user
+    }),
+    prisma.transaction.aggregate({
+      where: { kind: 'ROYALTY_PAYMENT', royaltyRecipientId: userId },
+      _sum: { royaltyAmount: true },
+      _count: true,
+    }),
+    prisma.moment.findMany({
+      where: { status: { not: 'DRAFT' } },
+      select: { id: true, era: true },
+    }),
+  ])
+
+  return { user, royalties, allPublishedMoments }
 }
 
 const TIER_ORDER: Record<Tier, number> = { MITICO: 0, EXCEPCIONAL: 1, RARO: 2, COMUN: 3 }
@@ -52,13 +74,17 @@ export default async function CuratorProfilePage({
   params: Promise<{ userId: string }>
 }) {
   const { userId } = await params
-  const [curator, session] = await Promise.all([getCuratorData(userId), auth()])
+  const [{ user: curator, royalties, allPublishedMoments }, session] = await Promise.all([
+    getCuratorData(userId),
+    auth(),
+  ])
 
   if (!curator) notFound()
 
   const isOwnProfile = session?.user?.id === userId
   const displayName = curator.displayName ?? curator.name ?? 'Curador Anónimo'
   const totalValue = curator.ownerships.reduce((s, o) => s + o.acquisitionPrice, 0)
+  const totalRoyalties = royalties._sum.royaltyAmount ?? 0
   const years = curator.ownerships.map((o) => o.moment.year)
   const yearSpan = years.length >= 2 ? Math.abs(Math.max(...years) - Math.min(...years)) : null
 
@@ -73,6 +99,17 @@ export default async function CuratorProfilePage({
     .join('')
     .toUpperCase()
     .slice(0, 2)
+
+  // Colecciones completas
+  const ownedMomentIds = new Set(curator.ownerships.map((o) => o.momentId))
+  const momentsByEra = allPublishedMoments.reduce<Record<string, string[]>>((acc, m) => {
+    if (!acc[m.era]) acc[m.era] = []
+    acc[m.era].push(m.id)
+    return acc
+  }, {})
+  const completedEras = Object.entries(momentsByEra)
+    .filter(([, ids]) => ids.length > 0 && ids.every((id) => ownedMomentIds.has(id)))
+    .map(([era]) => era)
 
   return (
     <main className="max-w-[1440px] mx-auto px-6 md:px-8 py-16">
@@ -119,7 +156,7 @@ export default async function CuratorProfilePage({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-[#4d4635] mb-16">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#4d4635] mb-10">
         <div className="bg-[#131313] p-6">
           <LabelCaps className="text-[#99907c] block mb-2">Momentos</LabelCaps>
           <div className="font-serif text-3xl font-bold text-[#e5e2e1]">
@@ -140,7 +177,29 @@ export default async function CuratorProfilePage({
             {yearSpan ? `${yearSpan.toLocaleString('es-ES')} años` : '—'}
           </div>
         </div>
+        <div className="bg-[#131313] p-6">
+          <LabelCaps className="text-[#99907c] block mb-2">Royalties</LabelCaps>
+          <div className="font-serif text-3xl font-bold text-[#5fd97a]">
+            {totalRoyalties > 0 ? `${(totalRoyalties / 100).toLocaleString('es-ES')} €` : '—'}
+          </div>
+        </div>
       </div>
+
+      {/* Colecciones completas */}
+      {completedEras.length > 0 && (
+        <div className="mb-12">
+          <div className="flex flex-wrap gap-3">
+            {completedEras.map((era) => (
+              <div key={era} className="flex items-center gap-2 border border-[#f2ca50]/40 bg-[rgba(242,202,80,0.06)] px-4 py-2">
+                <span className="text-[#f2ca50]">★</span>
+                <span className="text-[11px] font-semibold tracking-[0.15em] uppercase text-[#f2ca50]">
+                  {ERA_LABELS[era] ?? era}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <GoldDivider className="mb-10" />
 
