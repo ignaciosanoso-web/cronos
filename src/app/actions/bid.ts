@@ -3,6 +3,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
+import { pusher } from '@/lib/pusher'
 import { revalidatePath } from 'next/cache'
 import type { Tier } from '@prisma/client'
 
@@ -114,6 +115,17 @@ export async function placeBid(
       } catch (e) {
         console.error('[placeBid] No se pudo cancelar el PI anterior:', e)
       }
+    }
+
+    // Notificar en tiempo real a todos los que están viendo la subasta
+    try {
+      await pusher.trigger(`auction-${auctionId}`, 'bid-placed', {
+        amountCents,
+        closesAt: newClosesAt.toISOString(),
+        extended: triggeredExtension,
+      })
+    } catch (e) {
+      console.error('[placeBid] Pusher trigger failed:', e)
     }
 
     revalidatePath(`/momento/${auction.moment.slug}`)

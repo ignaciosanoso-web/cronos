@@ -4,8 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { TierBadge } from '@/components/ui/TierBadge'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
-import { AuctionCountdown } from '@/components/auction/AuctionCountdown'
-import { BidForm } from '@/components/auction/BidForm'
+import { AuctionLive } from '@/components/auction/AuctionLive'
 import type { Tier } from '@prisma/client'
 
 const ERA_LABELS: Record<string, string> = {
@@ -186,18 +185,14 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ s
 
           {/* CTA */}
           {activeAuction ? (
-            <div className="space-y-5">
-              <AuctionCountdown
-                closesAt={activeAuction.closesAt.toISOString()}
-                triggerMin={mechanics.triggerMin}
-                extensionMin={mechanics.extensionMin}
-              />
-              <BidForm
-                auctionId={activeAuction.id}
-                currentBidCents={activeAuction.currentBid?.amount ?? null}
-                startPriceCents={activeAuction.startPrice}
-              />
-            </div>
+            <AuctionLive
+              auctionId={activeAuction.id}
+              initialBidCents={activeAuction.currentBid?.amount ?? null}
+              startPriceCents={activeAuction.startPrice}
+              initialClosesAt={activeAuction.closesAt.toISOString()}
+              triggerMin={mechanics.triggerMin}
+              extensionMin={mechanics.extensionMin}
+            />
           ) : (
             <>
               <button
