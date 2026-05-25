@@ -88,9 +88,18 @@ export default async function VaultPage() {
       <h2 className="font-serif text-3xl font-bold mb-8 text-[#e5e2e1]">Artefactos Adquiridos</h2>
 
       {ownerships.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-[#4d4635]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {ownerships.map((ownership) => (
-            <MomentCard key={ownership.id} moment={ownership.moment} variant="vault" />
+            <MomentCard
+              key={ownership.id}
+              moment={ownership.moment}
+              variant="vault"
+              ownership={{
+                serialNumber: ownership.serialNumber,
+                acquisitionPrice: ownership.acquisitionPrice,
+                acquiredAt: ownership.acquiredAt,
+              }}
+            />
           ))}
         </div>
       ) : (
