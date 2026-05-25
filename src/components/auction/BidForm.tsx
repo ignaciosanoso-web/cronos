@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { stripePromise } from '@/lib/stripe-client'
 import { placeBid } from '@/app/actions/bid'
@@ -90,6 +90,15 @@ export function BidForm({ auctionId, currentBidCents, startPriceCents }: BidForm
 
   const [amount, setAmount] = useState(minEur)
   const [step, setStep] = useState<'idle' | 'loading' | 'payment'>('idle')
+
+  // Cuando alguien puja (Pusher actualiza currentBidCents), resetear el input
+  // al nuevo mínimo para evitar enviar un importe ya inválido.
+  useEffect(() => {
+    if (step === 'idle') {
+      setAmount(minEur)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minEur])
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null)
 

@@ -62,9 +62,6 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ s
 
   const mechanics = TIER_MECHANICS[moment.tier]
   const activeAuction = moment.auctions[0] ?? null
-  const currentBidEur = activeAuction?.currentBid
-    ? (activeAuction.currentBid.amount / 100).toLocaleString('es-ES')
-    : null
   const basePriceEur = (moment.basePrice / 100).toLocaleString('es-ES')
   const yearLabel = moment.year < 0 ? `${Math.abs(moment.year)} a.C.` : String(moment.year)
 
@@ -147,17 +144,17 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ s
 
           <GoldDivider className="mb-8" />
 
-          {/* Stats */}
+          {/* Stats — circulación (el precio lo gestiona AuctionLive en tiempo real) */}
           <div className="flex gap-8 mb-8">
-            <div>
-              <LabelCaps className="text-[#99907c] block mb-1">
-                {activeAuction ? 'Puja actual' : 'Precio base'}
-              </LabelCaps>
-              <span className="font-serif text-3xl font-bold text-[#f2ca50]">
-                {activeAuction && currentBidEur ? currentBidEur : basePriceEur} €
-              </span>
-            </div>
-            <div className="border-l border-[#4d4635] pl-8">
+            {!activeAuction && (
+              <div>
+                <LabelCaps className="text-[#99907c] block mb-1">Precio base</LabelCaps>
+                <span className="font-serif text-3xl font-bold text-[#f2ca50]">
+                  {basePriceEur} €
+                </span>
+              </div>
+            )}
+            <div className={activeAuction ? '' : 'border-l border-[#4d4635] pl-8'}>
               <LabelCaps className="text-[#99907c] block mb-1">Circulación</LabelCaps>
               <span className="font-serif text-xl text-[#e5e2e1]">
                 {moment.totalCirculation} ejemplares
