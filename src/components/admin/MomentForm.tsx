@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { LabelCaps } from '@/components/ui/LabelCaps'
 import { ImageUpload } from '@/components/admin/ImageUpload'
 import { createMoment, updateMoment, type MomentFormData } from '@/app/actions/admin/moment'
 import type { Era, Category, Tier, Confidence, MomentStatus } from '@prisma/client'

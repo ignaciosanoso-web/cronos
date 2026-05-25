@@ -8,12 +8,18 @@ const NAV_LINKS = [
   { href: '/', label: 'Inicio' },
   { href: '/timeline', label: 'Línea de Tiempo' },
   { href: '/explorer', label: 'Explorador' },
+  { href: '/market', label: 'Mercado' },
+  { href: '/petitions', label: 'Peticiones' },
   { href: '/how-it-works', label: 'Cómo Funciona' },
   { href: '/my-bids', label: 'Mis Pujas' },
   { href: '/vault', label: 'La Bóveda' },
 ]
 
-export function Header() {
+interface HeaderProps {
+  unreadCount?: number
+}
+
+export function Header({ unreadCount = 0 }: HeaderProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -40,6 +46,31 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
+            {/* Notification bell */}
+            <Link
+              href="/notifications"
+              className="relative hidden md:flex items-center text-[#e5e2e1] hover:text-[#f2ca50] transition-colors"
+              title="Notificaciones"
+            >
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-[#f2ca50] text-[#131313] text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Profile */}
             <Link
               href="/vault"
               className="hidden md:block text-[#e5e2e1] hover:text-[#f2ca50] transition-colors"
@@ -99,6 +130,18 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/notifications"
+              onClick={() => setMobileOpen(false)}
+              className="font-serif text-3xl font-semibold py-4 border-b border-[#2a2a2a] hover:text-[#f2ca50] transition-colors flex items-center gap-3"
+            >
+              Notificaciones
+              {unreadCount > 0 && (
+                <span className="bg-[#f2ca50] text-[#131313] text-sm font-bold px-2 py-0.5 rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
           </nav>
         </div>
       )}

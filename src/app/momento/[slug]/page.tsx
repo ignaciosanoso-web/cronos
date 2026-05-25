@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { TierBadge } from '@/components/ui/TierBadge'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
@@ -54,11 +55,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
+async function getOwnership(momentId: string, userId?: string) {
+  if (!userId) return null
+  return prisma.ownership.findFirst({
+    where: { momentId, userId },
+    select: { serialNumber: true, acquisitionPrice: true, acquiredAt: true },
+  })
+}
+
 export default async function MomentDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const moment = await getMoment(slug)
+  const [moment, session] = await Promise.all([getMoment(slug), auth()])
 
   if (!moment) notFound()
+
+  const ownership = await getOwnership(moment.id, session?.user?.id)
 
   const mechanics = TIER_MECHANICS[moment.tier]
   const activeAuction = moment.auctions[0] ?? null
@@ -226,6 +237,68 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ s
       </div>
 
       <GoldDivider className="mb-20" />
+
+      {/* ====== CERTIFICADO DE PROPIEDAD ====== */}
+      {ownership && (
+        <>
+          <GoldDivider className="mb-12" />
+          <div className="border border-[#f2ca50]/30 bg-[#1c1b1b] p-8 md:p-12 mb-20 relative overflow-hidden">
+            {/* Corner decorations */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#f2ca50]/40" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#f2ca50]/40" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#f2ca50]/40" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#f2ca50]/40" />
+
+            <div className="text-center mb-8">
+              <LabelCaps className="text-[#f2ca50] border border-[#735c00] px-4 py-1 inline-block mb-4">
+                Certificado de Propiedad
+              </LabelCaps>
+              <h2 className="font-serif text-2xl font-bold text-[#e5e2e1]">Este momento es tuyo</h2>
+            </div>
+
+            <GoldDivider className="mb-8" />
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              <div>
+                <LabelCaps className="text-[#99907c] block mb-2">Ejemplar</LabelCaps>
+                <div className="font-serif text-3xl font-bold text-[#f2ca50]">
+                  #{ownership.serialNumber}
+                </div>
+                <div className="text-xs text-[#4d4635] mt-1">de {moment.totalCirculation}</div>
+              </div>
+              <div>
+                <LabelCaps className="text-[#99907c] block mb-2">Adquirido por</LabelCaps>
+                <div className="font-serif text-3xl font-bold text-[#e5e2e1]">
+                  {(ownership.acquisitionPrice / 100).toLocaleString('es-ES')} €
+                </div>
+              </div>
+              <div>
+                <LabelCaps className="text-[#99907c] block mb-2">Fecha</LabelCaps>
+                <div className="font-serif text-lg font-bold text-[#e5e2e1] leading-tight">
+                  {ownership.acquiredAt.toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </div>
+              </div>
+              <div>
+                <LabelCaps className="text-[#99907c] block mb-2">Tier</LabelCaps>
+                <div className="flex justify-center mt-1">
+                  <TierBadge tier={moment.tier} />
+                </div>
+              </div>
+            </div>
+
+            <GoldDivider className="mt-8 mb-6" />
+
+            <p className="text-center text-xs text-[#4d4635]">
+              La propiedad de este momento histórico está registrada en el Protocolo Cronos. Número
+              de serie permanente e intransferible.
+            </p>
+          </div>
+        </>
+      )}
 
       {/* ====== SECONDARY TWO-COLUMN ====== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">

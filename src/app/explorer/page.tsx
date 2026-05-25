@@ -14,6 +14,7 @@ interface SearchParams {
   era?: string
   tier?: string
   cat?: string
+  q?: string
 }
 
 async function getMoments(filters: SearchParams) {
@@ -23,6 +24,14 @@ async function getMoments(filters: SearchParams) {
       ...(filters.era ? { era: filters.era as Era } : {}),
       ...(filters.tier ? { tier: filters.tier as Tier } : {}),
       ...(filters.cat ? { category: filters.cat as Category } : {}),
+      ...(filters.q
+        ? {
+            OR: [
+              { title: { contains: filters.q, mode: 'insensitive' } },
+              { description: { contains: filters.q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
     },
     orderBy: [{ tier: 'asc' }, { year: 'asc' }],
     select: {

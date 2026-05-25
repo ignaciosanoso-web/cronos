@@ -19,9 +19,16 @@ interface AuctionCountdownProps {
   closesAt: string
   triggerMin: number
   extensionMin: number
+  /** Modo compacto para tarjetas de la home */
+  compact?: boolean
 }
 
-export function AuctionCountdown({ closesAt, triggerMin, extensionMin }: AuctionCountdownProps) {
+export function AuctionCountdown({
+  closesAt,
+  triggerMin,
+  extensionMin,
+  compact = false,
+}: AuctionCountdownProps) {
   const [timeLeft, setTimeLeft] = useState(new Date(closesAt).getTime() - Date.now())
 
   useEffect(() => {
@@ -33,6 +40,26 @@ export function AuctionCountdown({ closesAt, triggerMin, extensionMin }: Auction
 
   const finished = timeLeft <= 0
   const inWindow = !finished && timeLeft <= triggerMin * 60 * 1000
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2">
+        <span
+          className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+            finished ? 'bg-[#4d4635]' : inWindow ? 'bg-[#ff8a73] animate-pulse' : 'bg-[#5fd97a]'
+          }`}
+        />
+        <LabelCaps className="text-[#99907c] text-[9px]">Cierre en</LabelCaps>
+        <span
+          className={`font-mono text-xs font-bold tabular-nums ${
+            finished ? 'text-[#4d4635]' : inWindow ? 'text-[#ff8a73]' : 'text-[#e5e2e1]'
+          }`}
+        >
+          {fmtCountdown(timeLeft)}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-1">

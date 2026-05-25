@@ -94,7 +94,7 @@ export default async function MyBidsPage() {
       {bids.length > 0 ? (
         <div className="bg-[#1c1b1b] border border-[#4d4635]">
           {/* Table header */}
-          <div className="hidden md:grid grid-cols-[80px_1fr_160px_160px_140px] gap-4 px-6 py-4 border-b border-[#4d4635]">
+          <div className="hidden md:grid grid-cols-[130px_1fr_140px_140px_120px] gap-4 px-6 py-4 border-b border-[#4d4635]">
             {['Tier', 'Momento', 'Tu Puja', 'Puja Actual', 'Estado'].map((h) => (
               <LabelCaps key={h} className="text-[#4d4635]">
                 {h}
@@ -116,7 +116,7 @@ export default async function MyBidsPage() {
             return (
               <div
                 key={bid.id}
-                className="grid grid-cols-1 md:grid-cols-[80px_1fr_160px_160px_140px] gap-4 px-6 py-5 border-b border-[#4d4635] last:border-b-0 hover:bg-[#131313] transition-colors"
+                className="grid grid-cols-1 md:grid-cols-[130px_1fr_140px_140px_120px] gap-4 px-6 py-5 border-b border-[#4d4635] last:border-b-0 hover:bg-[#131313] transition-colors"
               >
                 <div className="flex items-center">
                   <TierBadge tier={bid.auction.moment.tier} />

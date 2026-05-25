@@ -77,7 +77,7 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
             <div className="w-full h-full bg-[#1c1b1b]" />
           )}
           <div className="absolute top-4 left-4">
-            <TierBadge tier={moment.tier} />
+            <TierBadge tier={moment.tier} className="!bg-[#131313]/80" />
           </div>
           <div className="absolute top-4 right-4 font-serif text-[#f2ca50] bg-[rgba(19,19,19,0.8)] px-3 py-1 text-sm">
             {yearLabel}
@@ -124,7 +124,7 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
             </div>
           )}
           <div className="absolute top-3 left-3">
-            <TierBadge tier={moment.tier} />
+            <TierBadge tier={moment.tier} className="!bg-[#131313]/80" />
           </div>
           {ownership && (
             <div className="absolute top-3 right-3">

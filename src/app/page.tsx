@@ -3,14 +3,54 @@ import { prisma } from '@/lib/prisma'
 import { MomentCard } from '@/components/moment/MomentCard'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
+import { TierBadge } from '@/components/ui/TierBadge'
+import { AuctionCountdown } from '@/components/auction/AuctionCountdown'
+import type { Tier } from '@prisma/client'
 
-async function getRecentMoments() {
-  return prisma.moment.findMany({
-    where: {
-      status: { in: ['IN_AUCTION', 'IN_VAULT'] },
+const TIER_MECHANICS: Record<Tier, { triggerMin: number; extensionMin: number }> = {
+  MITICO: { triggerMin: 30, extensionMin: 30 },
+  EXCEPCIONAL: { triggerMin: 15, extensionMin: 15 },
+  RARO: { triggerMin: 10, extensionMin: 10 },
+  COMUN: { triggerMin: 5, extensionMin: 5 },
+}
+
+const ERA_LABELS: Record<string, string> = {
+  PREHISTORIA: 'Prehistoria',
+  MUNDO_ANTIGUO: 'Mundo Antiguo',
+  EDAD_MEDIA: 'Edad Media',
+  RENACIMIENTO: 'Renacimiento',
+  ERA_INDUSTRIAL: 'Era Industrial',
+  ERA_ESPACIAL: 'Era Espacial',
+  ERA_DIGITAL: 'Era Digital',
+}
+
+async function getActiveAuctions() {
+  return prisma.auction.findMany({
+    where: { status: { in: ['OPEN', 'EXTENDING'] } },
+    orderBy: { closesAt: 'asc' },
+    take: 4,
+    include: {
+      moment: {
+        select: {
+          slug: true,
+          title: true,
+          year: true,
+          era: true,
+          tier: true,
+          imageUrl: true,
+          totalCirculation: true,
+        },
+      },
+      currentBid: { select: { amount: true } },
     },
-    orderBy: { createdAt: 'desc' },
-    take: 6,
+  })
+}
+
+async function getRecentVault() {
+  return prisma.moment.findMany({
+    where: { status: { in: ['IN_VAULT'] } },
+    orderBy: { updatedAt: 'desc' },
+    take: 3,
     select: {
       slug: true,
       title: true,
@@ -28,7 +68,7 @@ async function getRecentMoments() {
 }
 
 export default async function HomePage() {
-  const moments = await getRecentMoments()
+  const [activeAuctions, recentVault] = await Promise.all([getActiveAuctions(), getRecentVault()])
 
   return (
     <main>
@@ -46,14 +86,14 @@ export default async function HomePage() {
             Cura tu legado con activos históricos definitivos.
           </p>
 
-          {/* Buscador */}
           <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto mb-10">
-            <div className="flex-1 bg-[#1c1b1b] border border-[#4d4635] flex items-center px-5 py-3">
-              <input
-                type="text"
-                placeholder="Encuentra tu momento..."
-                className="bg-transparent flex-1 outline-none text-sm placeholder:text-[#4d4635] text-[#e5e2e1]"
-              />
+            <Link
+              href="/explorer"
+              className="flex-1 bg-[#1c1b1b] border border-[#4d4635] flex items-center px-5 py-3 group hover:border-[#f2ca50] transition-colors"
+            >
+              <span className="bg-transparent flex-1 text-sm text-[#4d4635] group-hover:text-[#99907c] transition-colors">
+                Encuentra tu momento…
+              </span>
               <svg
                 width="18"
                 height="18"
@@ -65,55 +105,141 @@ export default async function HomePage() {
                 <circle cx="11" cy="11" r="7" />
                 <path d="m21 21-4.3-4.3" />
               </svg>
-            </div>
+            </Link>
             <Link href="/explorer" className="btn-primary text-center">
               Explorar
             </Link>
           </div>
 
-          {/* Categorías */}
           <div className="flex flex-wrap justify-center gap-3">
-            <button className="chip active">Todos</button>
-            <button className="chip">Ciencia</button>
-            <button className="chip">Arte</button>
-            <button className="chip">Guerra</button>
-            <button className="chip">Exploración</button>
-            <button className="chip">Política</button>
+            {['Ciencia', 'Arte', 'Guerra', 'Exploración', 'Política'].map((cat) => (
+              <Link
+                key={cat}
+                href={`/explorer?cat=${cat.toUpperCase().replace('Ó', 'O').replace('Á', 'A').replace('É', 'E')}`}
+                className="chip"
+              >
+                {cat}
+              </Link>
+            ))}
           </div>
         </div>
 
         <GoldDivider className="my-20" />
 
-        {/* ====== ADQUISICIONES RECIENTES ====== */}
-        <div>
-          <h2 className="font-serif text-4xl font-bold mb-2 text-[#e5e2e1]">
-            Adquisiciones Recientes
-          </h2>
-          <p className="text-[#a8a39e] text-sm mb-10">
-            Momentos históricos que ahora forman parte de colecciones privadas.
-          </p>
+        {/* ====== SUBASTAS EN CURSO ====== */}
+        {activeAuctions.length > 0 && (
+          <>
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="w-2 h-2 bg-[#f2ca50] rounded-full animate-pulse" />
+                  <LabelCaps className="text-[#f2ca50]">En Vivo</LabelCaps>
+                </div>
+                <h2 className="font-serif text-4xl font-bold text-[#e5e2e1]">Subastas en Curso</h2>
+              </div>
+              <Link href="/explorer?status=IN_AUCTION" className="hidden md:block btn-secondary">
+                Ver todas →
+              </Link>
+            </div>
 
-          {moments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-[#4d4635]">
-              {moments.map((moment) => (
+            <div
+              className={`grid gap-px bg-[#4d4635] ${activeAuctions.length >= 2 ? 'md:grid-cols-2' : 'grid-cols-1 max-w-2xl'}`}
+            >
+              {activeAuctions.map((auction) => {
+                const mechanics = TIER_MECHANICS[auction.moment.tier]
+                const currentCents = auction.currentBid?.amount ?? auction.startPrice
+                const priceEur = (currentCents / 100).toLocaleString('es-ES')
+                const yearLabel =
+                  auction.moment.year < 0
+                    ? `${Math.abs(auction.moment.year)} a.C.`
+                    : String(auction.moment.year)
+
+                return (
+                  <Link
+                    key={auction.id}
+                    href={`/momento/${auction.moment.slug}`}
+                    className="group bg-[#131313] flex gap-0 hover:bg-[#1c1b1b] transition-colors"
+                  >
+                    {/* Imagen */}
+                    <div className="w-32 md:w-44 flex-shrink-0 overflow-hidden relative">
+                      {auction.moment.imageUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={auction.moment.imageUrl}
+                          alt={auction.moment.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-[#1c1b1b] flex items-center justify-center">
+                          <span className="label-caps text-[#4d4635] text-[9px]">Sin imagen</span>
+                        </div>
+                      )}
+                      <div className="absolute top-2 left-2">
+                        <TierBadge tier={auction.moment.tier} className="!bg-[#131313]/80" />
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
+                      <div>
+                        <LabelCaps className="text-[#4d4635] block mb-1 text-[9px]">
+                          {ERA_LABELS[auction.moment.era]} · {yearLabel}
+                        </LabelCaps>
+                        <h3 className="font-serif font-bold text-[#e5e2e1] leading-tight mb-3 group-hover:text-[#f2ca50] transition-colors">
+                          {auction.moment.title}
+                        </h3>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-end justify-between">
+                          <div>
+                            <LabelCaps className="text-[#99907c] block mb-0.5 text-[9px]">
+                              {auction.currentBid ? 'Puja actual' : 'Precio base'}
+                            </LabelCaps>
+                            <span className="font-serif text-xl font-bold text-[#f2ca50]">
+                              {priceEur} €
+                            </span>
+                          </div>
+                          <LabelCaps className="text-[#f2ca50] text-[10px]">Pujar →</LabelCaps>
+                        </div>
+                        <AuctionCountdown
+                          closesAt={auction.closesAt.toISOString()}
+                          triggerMin={mechanics.triggerMin}
+                          extensionMin={mechanics.extensionMin}
+                          compact
+                        />
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+
+            <GoldDivider className="my-20" />
+          </>
+        )}
+
+        {/* ====== ADQUIRIDOS RECIENTEMENTE ====== */}
+        {recentVault.length > 0 && (
+          <>
+            <div className="mb-10">
+              <h2 className="font-serif text-4xl font-bold mb-2 text-[#e5e2e1]">
+                Adquiridos Recientemente
+              </h2>
+              <p className="text-[#a8a39e] text-sm">
+                Momentos históricos que ahora forman parte de colecciones privadas.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[#4d4635]">
+              {recentVault.map((moment) => (
                 <MomentCard key={moment.slug} moment={moment} variant="recent" />
               ))}
             </div>
-          ) : (
-            <div className="border border-[#4d4635] p-16 text-center">
-              <p className="text-[#99907c] text-sm">El archivo histórico se está preparando.</p>
-            </div>
-          )}
-        </div>
 
-        <div className="flex justify-center mt-16">
-          <div className="border border-[#4d4635] px-6 py-2 flex items-center gap-2">
-            <span className="w-2 h-2 bg-[#f2ca50] rounded-full animate-pulse" />
-            <LabelCaps className="text-[#f2ca50]">Actualizaciones en tiempo real</LabelCaps>
-          </div>
-        </div>
-
-        <GoldDivider className="my-20" />
+            <GoldDivider className="my-20" />
+          </>
+        )}
 
         {/* ====== TEASER PROTOCOLO ====== */}
         <div className="max-w-3xl mx-auto text-center">
@@ -176,8 +302,8 @@ export default async function HomePage() {
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="hover:text-[#f2ca50] transition-colors">
-                  Acceder
+                <Link href="/notifications" className="hover:text-[#f2ca50] transition-colors">
+                  Notificaciones
                 </Link>
               </li>
             </ul>
@@ -196,7 +322,7 @@ export default async function HomePage() {
         </div>
         <div className="border-t border-[#4d4635]">
           <div className="max-w-[1440px] mx-auto px-6 md:px-8 py-6 flex justify-between items-center">
-            <LabelCaps className="text-[#4d4635]">© 2025 Cronos</LabelCaps>
+            <LabelCaps className="text-[#4d4635]">© 2026 Cronos</LabelCaps>
             <LabelCaps className="text-[#4d4635]">El Mercado del Tiempo</LabelCaps>
           </div>
         </div>

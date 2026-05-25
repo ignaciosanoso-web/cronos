@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { MomentCard } from '@/components/moment/MomentCard'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
+import { SellButton } from '@/components/market/SellButton'
 
 export const metadata = {
   title: 'La Bóveda — Cronos',
@@ -29,6 +30,11 @@ async function getVaultData(userId: string) {
           totalCirculation: true,
           basePrice: true,
         },
+      },
+      listings: {
+        where: { status: 'ACTIVE' },
+        select: { id: true, askingPrice: true },
+        take: 1,
       },
     },
     orderBy: { acquiredAt: 'desc' },
@@ -89,18 +95,27 @@ export default async function VaultPage() {
 
       {ownerships.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {ownerships.map((ownership) => (
-            <MomentCard
-              key={ownership.id}
-              moment={ownership.moment}
-              variant="vault"
-              ownership={{
-                serialNumber: ownership.serialNumber,
-                acquisitionPrice: ownership.acquisitionPrice,
-                acquiredAt: ownership.acquiredAt,
-              }}
-            />
-          ))}
+          {ownerships.map((ownership) => {
+            const activeListing = ownership.listings[0]
+            return (
+              <div key={ownership.id} className="flex flex-col">
+                <MomentCard
+                  moment={ownership.moment}
+                  variant="vault"
+                  ownership={{
+                    serialNumber: ownership.serialNumber,
+                    acquisitionPrice: ownership.acquisitionPrice,
+                    acquiredAt: ownership.acquiredAt,
+                  }}
+                />
+                <SellButton
+                  ownershipId={ownership.id}
+                  activeListingId={activeListing?.id}
+                  askingPrice={activeListing?.askingPrice}
+                />
+              </div>
+            )
+          })}
         </div>
       ) : (
         <div className="border border-[#4d4635] p-20 text-center">

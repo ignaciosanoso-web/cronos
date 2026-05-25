@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
+import { CancelAuctionButton } from '@/components/admin/CancelAuctionButton'
 import Link from 'next/link'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -20,6 +21,8 @@ const STATUS_COLOR: Record<string, string> = {
   CLOSED_NO_BIDS: 'text-[#4d4635] border-[#4d4635]',
   CANCELLED: 'text-[#ff8a73] border-[#ff8a73]',
 }
+
+const CANCELLABLE = ['SCHEDULED', 'OPEN', 'EXTENDING']
 
 export default async function AdminSubastas() {
   const auctions = await prisma.auction.findMany({
@@ -47,8 +50,8 @@ export default async function AdminSubastas() {
       <GoldDivider className="mb-6" />
 
       <div className="border border-[#4d4635]">
-        <div className="grid grid-cols-[1fr_80px_90px_110px_80px_90px] gap-2 px-4 py-2 bg-[#1c1b1b] border-b border-[#4d4635]">
-          {['Momento', '#', 'Estado', 'Cierre', 'Pujas', 'Puja actual'].map((h) => (
+        <div className="grid grid-cols-[1fr_70px_90px_100px_60px_90px_90px] gap-2 px-4 py-2 bg-[#1c1b1b] border-b border-[#4d4635]">
+          {['Momento', '#', 'Estado', 'Cierre', 'Pujas', 'Puja actual', 'Acción'].map((h) => (
             <LabelCaps key={h} className="text-[#4d4635] text-[9px]">
               {h}
             </LabelCaps>
@@ -61,10 +64,15 @@ export default async function AdminSubastas() {
           {auctions.map((a) => (
             <div
               key={a.id}
-              className="grid grid-cols-[1fr_80px_90px_110px_80px_90px] gap-2 px-4 py-3 items-center hover:bg-[#1c1b1b]"
+              className="grid grid-cols-[1fr_70px_90px_100px_60px_90px_90px] gap-2 px-4 py-3 items-center hover:bg-[#1c1b1b]"
             >
               <div className="min-w-0">
-                <p className="text-sm text-[#e5e2e1] truncate">{a.moment.title}</p>
+                <Link
+                  href={`/momento/${a.moment.slug}`}
+                  className="text-sm text-[#e5e2e1] truncate hover:text-[#f2ca50] transition-colors block"
+                >
+                  {a.moment.title}
+                </Link>
               </div>
               <span className="text-xs text-[#99907c] font-mono">#{a.serialNumber}</span>
               <span
@@ -85,6 +93,13 @@ export default async function AdminSubastas() {
               <span className="text-sm text-[#f2ca50] font-serif tabular-nums text-right">
                 {a.currentBid ? `${(a.currentBid.amount / 100).toLocaleString('es-ES')} €` : '—'}
               </span>
+              <div className="flex items-center gap-2">
+                {CANCELLABLE.includes(a.status) ? (
+                  <CancelAuctionButton auctionId={a.id} />
+                ) : (
+                  <span className="text-[#4d4635] text-[9px]">—</span>
+                )}
+              </div>
             </div>
           ))}
         </div>

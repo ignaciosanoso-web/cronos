@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useRef } from 'react'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 
 const ERAS = [
@@ -35,10 +36,12 @@ export function ExplorerFilters() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const currentEra = searchParams.get('era') ?? ''
   const currentTier = searchParams.get('tier') ?? ''
   const currentCat = searchParams.get('cat') ?? ''
+  const currentQ = searchParams.get('q') ?? ''
 
   function setFilter(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString())
@@ -50,7 +53,14 @@ export function ExplorerFilters() {
     router.push(`${pathname}?${params.toString()}`)
   }
 
-  const hasFilters = currentEra || currentTier || currentCat
+  function handleSearch(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setFilter('q', value.trim())
+    }, 350)
+  }
+
+  const hasFilters = currentEra || currentTier || currentCat || currentQ
 
   return (
     <div className="border border-[#4d4635] p-6 space-y-5">
@@ -64,6 +74,29 @@ export function ExplorerFilters() {
             Limpiar filtros ×
           </button>
         )}
+      </div>
+
+      {/* Búsqueda por texto */}
+      <div className="flex items-center gap-3 bg-[#0e0e0e] border border-[#4d4635] focus-within:border-[#f2ca50] px-4 py-2 transition-colors">
+        <svg
+          width="14"
+          height="14"
+          fill="none"
+          stroke="#4d4635"
+          strokeWidth="1.5"
+          viewBox="0 0 24 24"
+          className="flex-shrink-0"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          type="text"
+          defaultValue={currentQ}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Buscar momento…"
+          className="bg-transparent flex-1 text-sm text-[#e5e2e1] placeholder:text-[#4d4635] outline-none"
+        />
       </div>
 
       <div>

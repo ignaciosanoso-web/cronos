@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { LabelCaps } from '@/components/ui/LabelCaps'
 import { createAuction } from '@/app/actions/admin/auction'
 import type { Tier, MomentStatus } from '@prisma/client'
 
