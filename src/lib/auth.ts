@@ -7,6 +7,8 @@ import type { UserRole } from '@prisma/client'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  // JWT strategy allows middleware to read role without hitting the DB
+  session: { strategy: 'jwt' },
   providers: [
     Resend({
       apiKey: process.env.RESEND_API_KEY,
@@ -23,9 +25,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: '/login',
   },
   callbacks: {
-    session({ session, user }) {
-      session.user.id = user.id
-      session.user.role = (user as unknown as { role: UserRole }).role
+    async jwt({ token, user }) {
+      // On sign-in, embed id and role into the token
+      if (user) {
+        token.id = user.id
+        token.role = (user as unknown as { role: UserRole }).role
+      }
+      return token
+    },
+    session({ session, token }) {
+      session.user.id = token.id as string
+      session.user.role = token.role as UserRole
       return session
     },
   },
