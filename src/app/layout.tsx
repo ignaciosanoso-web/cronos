@@ -41,7 +41,7 @@ export default async function RootLayout({
   return (
     <html lang="es" className={`${playfair.variable} ${inter.variable}`}>
       <body className="antialiased">
-        <Header unreadCount={unreadCount} />
+        <Header unreadCount={unreadCount} isAuthenticated={!!session?.user} isAdmin={session?.user?.role === 'ADMIN'} />
         {children}
       </body>
     </html>
