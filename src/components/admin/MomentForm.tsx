@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { LabelCaps } from '@/components/ui/LabelCaps'
+import { ImageUpload } from '@/components/admin/ImageUpload'
 import { createMoment, updateMoment, type MomentFormData } from '@/app/actions/admin/moment'
 import type { Era, Category, Tier, Confidence, MomentStatus } from '@prisma/client'
 
@@ -240,26 +241,21 @@ export function MomentForm({ momentId, initial }: MomentFormProps) {
         />
       </div>
 
-      {/* Imagen y Ubicación */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>URL de imagen</label>
-          <input
-            className={inputCls}
-            value={form.imageUrl}
-            onChange={(e) => set('imageUrl', e.target.value)}
-            placeholder="https://..."
-          />
-        </div>
-        <div>
-          <label className={labelCls}>Ubicación (opcional)</label>
-          <input
-            className={inputCls}
-            value={form.location}
-            onChange={(e) => set('location', e.target.value)}
-            placeholder="Mar de la Tranquilidad, Luna"
-          />
-        </div>
+      {/* Imagen */}
+      <div>
+        <label className={labelCls}>Imagen</label>
+        <ImageUpload value={form.imageUrl} onChange={(url) => set('imageUrl', url)} />
+      </div>
+
+      {/* Ubicación */}
+      <div>
+        <label className={labelCls}>Ubicación (opcional)</label>
+        <input
+          className={inputCls}
+          value={form.location}
+          onChange={(e) => set('location', e.target.value)}
+          placeholder="Mar de la Tranquilidad, Luna"
+        />
       </div>
 
       {/* Fuentes */}
