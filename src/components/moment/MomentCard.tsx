@@ -3,6 +3,7 @@ import type { Moment } from '@prisma/client'
 import { TierBadge } from '@/components/ui/TierBadge'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 import { GoldDivider } from '@/components/ui/GoldDivider'
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback'
 
 const ERA_LABELS: Record<string, string> = {
   PREHISTORIA: 'Prehistoria',
@@ -52,12 +53,25 @@ interface MomentCardProps {
   ownership?: OwnershipData
 }
 
-/* eslint-disable @next/next/no-img-element */
-
 export function MomentCard({ moment, variant = 'recent', ownership }: MomentCardProps) {
   const status = STATUS_LABEL[moment.status] ?? STATUS_LABEL.SCHEDULED
   const priceEur = (moment.basePrice / 100).toLocaleString('es-ES')
   const yearLabel = moment.year < 0 ? `${Math.abs(moment.year)} a.C.` : String(moment.year)
+
+  const imagePlaceholder = (size: 'lg' | 'sm' = 'lg') => (
+    <div className="w-full h-full bg-[#0e0e0e] flex flex-col items-center justify-center gap-2">
+      <span
+        className={`font-serif font-bold text-[#2a2a2a] ${size === 'lg' ? 'text-4xl' : 'text-3xl'}`}
+      >
+        {yearLabel}
+      </span>
+      <span
+        className={`font-semibold tracking-[0.2em] uppercase text-[#2a2a2a] ${size === 'lg' ? 'text-[10px]' : 'text-[9px]'}`}
+      >
+        {ERA_LABELS[moment.era]}
+      </span>
+    </div>
+  )
 
   if (variant === 'explorer') {
     return (
@@ -65,19 +79,16 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
         href={`/momento/${moment.slug}`}
         className="artifact-card block bg-[#131313] cursor-pointer border-b border-r border-[#4d4635]"
       >
-        <div className="aspect-square overflow-hidden bg-[#1c1b1b] relative">
+        <div className="aspect-square overflow-hidden bg-[#0e0e0e] relative">
           {moment.imageUrl ? (
-            <img
+            <ImageWithFallback
               src={moment.imageUrl}
               alt={moment.title}
               className="w-full h-full object-cover opacity-80 hover:opacity-100 transition"
-              loading="lazy"
+              fallback={imagePlaceholder('lg')}
             />
           ) : (
-            <div className="w-full h-full bg-[#0e0e0e] flex flex-col items-center justify-center gap-2">
-              <span className="font-serif text-4xl font-bold text-[#2a2a2a]">{yearLabel}</span>
-              <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#2a2a2a]">{ERA_LABELS[moment.era]}</span>
-            </div>
+            imagePlaceholder('lg')
           )}
           <div className="absolute top-4 left-4">
             <TierBadge tier={moment.tier} className="!bg-[#131313]/80" />
@@ -114,18 +125,16 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
         className="group block bg-[#1c1b1b] border border-[#4d4635] hover:border-[#f2ca50] transition-colors"
       >
         {/* Imagen */}
-        <div className="aspect-[4/3] bg-[#131313] overflow-hidden relative">
+        <div className="aspect-[4/3] bg-[#0e0e0e] overflow-hidden relative">
           {moment.imageUrl ? (
-            <img
+            <ImageWithFallback
               src={moment.imageUrl}
               alt={moment.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+              fallback={imagePlaceholder('sm')}
             />
           ) : (
-            <div className="w-full h-full bg-[#0e0e0e] flex flex-col items-center justify-center gap-1">
-              <span className="font-serif text-3xl font-bold text-[#2a2a2a]">{yearLabel}</span>
-              <span className="text-[9px] font-semibold tracking-[0.2em] uppercase text-[#2a2a2a]">{ERA_LABELS[moment.era]}</span>
-            </div>
+            imagePlaceholder('sm')
           )}
           <div className="absolute top-3 left-3">
             <TierBadge tier={moment.tier} className="!bg-[#131313]/80" />
@@ -173,6 +182,7 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
     )
   }
 
+  // variant === 'recent' (default)
   return (
     <Link
       href={`/momento/${moment.slug}`}
