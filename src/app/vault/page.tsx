@@ -12,8 +12,18 @@ export const metadata = {
   description: 'Tu colección privada de momentos históricos curados.',
 }
 
+const ERA_LABELS: Record<string, string> = {
+  PREHISTORIA: 'Prehistoria',
+  MUNDO_ANTIGUO: 'Mundo Antiguo',
+  EDAD_MEDIA: 'Edad Media',
+  RENACIMIENTO: 'Renacimiento',
+  ERA_INDUSTRIAL: 'Era Industrial',
+  ERA_ESPACIAL: 'Era Espacial',
+  ERA_DIGITAL: 'Era Digital',
+}
+
 async function getVaultData(userId: string) {
-  const [ownerships, royalties] = await Promise.all([
+  const [ownerships, royalties, allPublishedMoments] = await Promise.all([
     prisma.ownership.findMany({
       where: { userId },
       include: {
@@ -45,6 +55,10 @@ async function getVaultData(userId: string) {
       orderBy: { createdAt: 'desc' },
       take: 20,
     }),
+    prisma.moment.findMany({
+      where: { status: { not: 'DRAFT' } },
+      select: { id: true, era: true },
+    }),
   ])
 
   const totalValue = ownerships.reduce((sum, o) => sum + o.acquisitionPrice, 0)
@@ -52,14 +66,25 @@ async function getVaultData(userId: string) {
   const years = ownerships.map((o) => o.moment.year)
   const yearSpan = years.length >= 2 ? Math.abs(Math.max(...years) - Math.min(...years)) : null
 
-  return { ownerships, totalValue, yearSpan, royalties, totalRoyalties }
+  // Colecciones completas por era
+  const ownedMomentIds = new Set(ownerships.map((o) => o.momentId))
+  const momentsByEra = allPublishedMoments.reduce<Record<string, string[]>>((acc, m) => {
+    if (!acc[m.era]) acc[m.era] = []
+    acc[m.era].push(m.id)
+    return acc
+  }, {})
+  const completedEras = Object.entries(momentsByEra)
+    .filter(([, ids]) => ids.length > 0 && ids.every((id) => ownedMomentIds.has(id)))
+    .map(([era]) => era)
+
+  return { ownerships, totalValue, yearSpan, royalties, totalRoyalties, completedEras }
 }
 
 export default async function VaultPage() {
   const session = await auth()
   if (!session?.user) redirect('/login')
 
-  const { ownerships, totalValue, yearSpan, royalties, totalRoyalties } = await getVaultData(session.user.id)
+  const { ownerships, totalValue, yearSpan, royalties, totalRoyalties, completedEras } = await getVaultData(session.user.id)
   const totalValueEur = (totalValue / 100).toLocaleString('es-ES')
   const totalRoyaltiesEur = (totalRoyalties / 100).toLocaleString('es-ES')
 
@@ -106,6 +131,29 @@ export default async function VaultPage() {
 
       <GoldDivider className="mb-10" />
 
+      {/* Colecciones completas */}
+      {completedEras.length > 0 && (
+        <div className="mb-12">
+          <h2 className="font-serif text-2xl font-bold mb-4 text-[#e5e2e1]">Colecciones Completas</h2>
+          <div className="flex flex-wrap gap-3">
+            {completedEras.map((era) => (
+              <div
+                key={era}
+                className="flex items-center gap-2 border border-[#f2ca50]/40 bg-[rgba(242,202,80,0.06)] px-4 py-2"
+              >
+                <span className="text-[#f2ca50] text-base">★</span>
+                <span className="text-[11px] font-semibold tracking-[0.15em] uppercase text-[#f2ca50]">
+                  {ERA_LABELS[era] ?? era}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-[#4d4635] mt-3">
+            Posees al menos un ejemplar de cada momento publicado en estas eras.
+          </p>
+        </div>
+      )}
+
       <h2 className="font-serif text-3xl font-bold mb-8 text-[#e5e2e1]">Artefactos Adquiridos</h2>
 
       {ownerships.length > 0 ? (
@@ -128,6 +176,12 @@ export default async function VaultPage() {
                   activeListingId={activeListing?.id}
                   askingPrice={activeListing?.askingPrice}
                 />
+                <Link
+                  href={`/certificado/${ownership.id}`}
+                  className="mt-2 block text-center text-[10px] font-semibold tracking-[0.15em] uppercase text-[#4d4635] hover:text-[#f2ca50] transition-colors py-1"
+                >
+                  Ver certificado →
+                </Link>
               </div>
             )
           })}

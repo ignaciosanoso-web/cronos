@@ -59,7 +59,15 @@ async function getOwnership(momentId: string, userId?: string) {
   if (!userId) return null
   return prisma.ownership.findFirst({
     where: { momentId, userId },
-    select: { serialNumber: true, acquisitionPrice: true, acquiredAt: true },
+    select: { id: true, serialNumber: true, acquisitionPrice: true, acquiredAt: true },
+  })
+}
+
+async function getOwners(momentId: string) {
+  return prisma.ownership.findMany({
+    where: { momentId, isPublic: true },
+    include: { user: { select: { displayName: true, name: true } } },
+    orderBy: { serialNumber: 'asc' },
   })
 }
 
@@ -69,7 +77,10 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ s
 
   if (!moment) notFound()
 
-  const ownership = await getOwnership(moment.id, session?.user?.id)
+  const [ownership, owners] = await Promise.all([
+    getOwnership(moment.id, session?.user?.id),
+    getOwners(moment.id),
+  ])
 
   const mechanics = TIER_MECHANICS[moment.tier]
   const activeAuction = moment.auctions[0] ?? null
@@ -296,6 +307,69 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ s
               La propiedad de este momento histórico está registrada en el Protocolo Cronos. Número
               de serie permanente e intransferible.
             </p>
+
+            <div className="mt-6 text-center">
+              <Link
+                href={`/certificado/${ownership.id}`}
+                className="inline-block text-[11px] font-semibold tracking-[0.15em] uppercase text-[#f2ca50] border border-[#735c00] px-4 py-2 hover:bg-[rgba(242,202,80,0.08)] transition-colors"
+              >
+                Descargar certificado →
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ====== MURO DE PROPIETARIOS ====== */}
+      {owners.length > 0 && (
+        <>
+          <GoldDivider className="mb-12" />
+          <div className="mb-8">
+            <h2 className="font-serif text-3xl font-bold mb-2 text-[#e5e2e1]">
+              Archivo de Propietarios
+            </h2>
+            <p className="text-sm text-[#99907c]">
+              {owners.length} de {moment.totalCirculation} ejemplares en manos de curators.
+            </p>
+          </div>
+          <div className="border border-[#4d4635] divide-y divide-[#4d4635] mb-20">
+            {owners.map((o) => {
+              const ownerName = o.user.displayName ?? o.user.name ?? 'Curador Anónimo'
+              const isYours = o.userId === session?.user?.id
+              return (
+                <div
+                  key={o.id}
+                  className={`flex items-center justify-between px-6 py-4 ${isYours ? 'bg-[rgba(242,202,80,0.04)]' : ''}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="font-serif text-xl font-bold text-[#f2ca50] tabular-nums w-12">
+                      #{o.serialNumber}
+                    </span>
+                    <span className="text-sm text-[#e5e2e1]">
+                      {ownerName}
+                      {isYours && (
+                        <span className="ml-2 text-[9px] font-semibold tracking-[0.15em] uppercase text-[#f2ca50] border border-[#735c00] px-1.5 py-0.5">
+                          Tú
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <LabelCaps className="text-[#4d4635]">
+                    {o.acquiredAt.toLocaleDateString('es-ES', {
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </LabelCaps>
+                </div>
+              )
+            })}
+            {moment.totalCirculation - owners.length > 0 && (
+              <div className="px-6 py-4 text-center">
+                <span className="text-xs text-[#4d4635]">
+                  {moment.totalCirculation - owners.length} ejemplares aún sin propietario
+                </span>
+              </div>
+            )}
           </div>
         </>
       )}
