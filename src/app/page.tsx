@@ -231,7 +231,7 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[#4d4635]">
+            <div className="grid grid-cols-1 md:grid-cols-3 border-t border-l border-[#4d4635]">
               {recentVault.map((moment) => (
                 <MomentCard key={moment.slug} moment={moment} variant="recent" />
               ))}

@@ -77,7 +77,7 @@ export default async function ExplorerPage({
         </LabelCaps>
 
         {moments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-[#4d4635]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-[#4d4635]">
             {moments.map((moment) => (
               <MomentCard key={moment.slug} moment={moment} variant="explorer" />
             ))}

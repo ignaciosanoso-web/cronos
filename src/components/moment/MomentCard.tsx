@@ -63,7 +63,7 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
     return (
       <Link
         href={`/momento/${moment.slug}`}
-        className="artifact-card block bg-[#131313] cursor-pointer"
+        className="artifact-card block bg-[#131313] cursor-pointer border-b border-r border-[#4d4635]"
       >
         <div className="aspect-square overflow-hidden bg-[#1c1b1b] relative">
           {moment.imageUrl ? (
@@ -74,7 +74,10 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full bg-[#1c1b1b]" />
+            <div className="w-full h-full bg-[#0e0e0e] flex flex-col items-center justify-center gap-2">
+              <span className="font-serif text-4xl font-bold text-[#2a2a2a]">{yearLabel}</span>
+              <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#2a2a2a]">{ERA_LABELS[moment.era]}</span>
+            </div>
           )}
           <div className="absolute top-4 left-4">
             <TierBadge tier={moment.tier} className="!bg-[#131313]/80" />
@@ -119,8 +122,9 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="label-caps text-[#4d4635] text-[10px]">Sin imagen</span>
+            <div className="w-full h-full bg-[#0e0e0e] flex flex-col items-center justify-center gap-1">
+              <span className="font-serif text-3xl font-bold text-[#2a2a2a]">{yearLabel}</span>
+              <span className="text-[9px] font-semibold tracking-[0.2em] uppercase text-[#2a2a2a]">{ERA_LABELS[moment.era]}</span>
             </div>
           )}
           <div className="absolute top-3 left-3">
@@ -172,7 +176,7 @@ export function MomentCard({ moment, variant = 'recent', ownership }: MomentCard
   return (
     <Link
       href={`/momento/${moment.slug}`}
-      className="artifact-card block bg-[#131313] p-6 cursor-pointer"
+      className="artifact-card block bg-[#131313] p-6 cursor-pointer border-b border-r border-[#4d4635]"
     >
       <div className="flex items-start justify-between mb-4">
         <TierBadge tier={moment.tier} />
