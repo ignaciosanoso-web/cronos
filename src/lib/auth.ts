@@ -14,7 +14,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       apiKey: process.env.RESEND_API_KEY,
       from: 'Cronos <noreply@resend.dev>',
     }),
-    Google,
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
   ],
   pages: {
     signIn: '/login',
