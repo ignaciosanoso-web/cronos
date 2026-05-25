@@ -140,17 +140,28 @@ export async function acceptOffer(offerId: string): Promise<{ success: true } | 
 
     const { listing } = offer
     const ownership = listing.ownership
-    const CRONOS_FEE_BPS = 800 // 8%
+    const CRONOS_FEE_BPS = 800  // 8% — comisión de plataforma
+    const ROYALTY_BPS = 500     // 5% — royalty al primer propietario
+
+    // El primer propietario es quien ganó la subasta original
+    const firstOwnerId = ownership.originalAdquirentId ?? ownership.userId
+    // Solo hay royalty si el vendedor NO es el primer propietario
+    const royaltyRecipientId = firstOwnerId !== user.id ? firstOwnerId : null
+    const royaltyAmount = royaltyRecipientId
+      ? Math.round((offer.amount * ROYALTY_BPS) / 10000)
+      : 0
+    const cronosFee = Math.round((offer.amount * CRONOS_FEE_BPS) / 10000)
+    const sellerNet = offer.amount - cronosFee - royaltyAmount
 
     await prisma.$transaction(async (tx) => {
-      // 1. Transferir propiedad
+      // 1. Transferir propiedad — preservar el primer propietario original
       await tx.ownership.update({
         where: { id: ownership.id },
         data: {
           userId: offer.buyerId,
           acquisitionPrice: offer.amount,
           acquiredAt: new Date(),
-          originalAdquirentId: ownership.originalAdquirentId ?? ownership.userId,
+          originalAdquirentId: firstOwnerId,
         },
       })
 
@@ -172,8 +183,7 @@ export async function acceptOffer(offerId: string): Promise<{ success: true } | 
         data: { status: 'REJECTED' },
       })
 
-      // 5. Registrar transacción
-      const cronosFee = Math.round((offer.amount * CRONOS_FEE_BPS) / 10000)
+      // 5. Registrar transacción principal
       await tx.transaction.create({
         data: {
           kind: 'SECONDARY_SALE',
@@ -182,16 +192,50 @@ export async function acceptOffer(offerId: string): Promise<{ success: true } | 
           sellerId: user.id,
           grossAmount: offer.amount,
           cronosFee,
-          sellerNet: offer.amount - cronosFee,
-          royaltyAmount: 0,
+          sellerNet,
+          royaltyAmount,
+          royaltyRecipientId,
         },
       })
 
-      // 6. Notificar al comprador
+      // 6. Registrar transacción de royalty (para historial del primer propietario)
+      if (royaltyRecipientId && royaltyAmount > 0) {
+        await tx.transaction.create({
+          data: {
+            kind: 'ROYALTY_PAYMENT',
+            momentId: ownership.momentId,
+            buyerId: offer.buyerId,
+            sellerId: user.id,
+            grossAmount: offer.amount,
+            cronosFee: 0,
+            sellerNet: 0,
+            royaltyAmount,
+            royaltyRecipientId,
+          },
+        })
+
+        // Notificar al primer propietario que ha ganado un royalty
+        await tx.notification.create({
+          data: {
+            userId: royaltyRecipientId,
+            kind: 'ROYALTY_EARNED',
+            payload: {
+              momentId: ownership.momentId,
+              momentSlug: ownership.moment.slug,
+              momentTitle: ownership.moment.title,
+              serialNumber: ownership.serialNumber,
+              salePriceCents: offer.amount,
+              royaltyAmountCents: royaltyAmount,
+            },
+          },
+        })
+      }
+
+      // 7. Notificar al comprador
       await tx.notification.create({
         data: {
           userId: offer.buyerId,
-          kind: 'AUCTION_WON', // reutilizamos AUCTION_WON como "compra completada"
+          kind: 'AUCTION_WON',
           payload: {
             type: 'SECONDARY_SALE',
             momentId: ownership.momentId,
