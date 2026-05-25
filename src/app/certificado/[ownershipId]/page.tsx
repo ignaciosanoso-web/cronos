@@ -51,7 +51,7 @@ export default async function CertificatePage({
   return (
     <>
       {/* Print button — oculto al imprimir */}
-      <div className="no-print fixed top-6 right-6 z-50">
+      <div className="no-print fixed top-0 right-0 z-50 p-4 bg-[#131313]">
         <PrintButton />
       </div>
 
