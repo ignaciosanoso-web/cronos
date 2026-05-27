@@ -6,6 +6,7 @@ import { MomentCard } from '@/components/moment/MomentCard'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 import { SellButton } from '@/components/market/SellButton'
+import { TogglePublicButton } from '@/components/vault/TogglePublicButton'
 
 export const metadata = {
   title: 'La Bóveda — Cronos',
@@ -49,6 +50,7 @@ async function getVaultData(userId: string) {
         },
       },
       orderBy: { acquiredAt: 'desc' },
+      // isPublic is already on the Ownership model
     }),
     prisma.transaction.findMany({
       where: { kind: 'ROYALTY_PAYMENT', royaltyRecipientId: userId },
@@ -196,6 +198,10 @@ export default async function VaultPage() {
                 >
                   Ver certificado →
                 </Link>
+                <TogglePublicButton
+                  ownershipId={ownership.id}
+                  initialIsPublic={ownership.isPublic}
+                />
               </div>
             )
           })}

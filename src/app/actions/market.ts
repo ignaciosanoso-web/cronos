@@ -3,6 +3,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { sendRoyaltyEmail } from '@/lib/email'
 
 async function requireUser() {
   const session = await auth()
@@ -246,6 +247,23 @@ export async function acceptOffer(offerId: string): Promise<{ success: true } | 
         },
       })
     })
+
+    // Email de royalty — fire and forget fuera de la transacción
+    if (royaltyRecipientId && royaltyAmount > 0) {
+      const recipient = await prisma.user.findUnique({
+        where: { id: royaltyRecipientId },
+        select: { email: true },
+      })
+      if (recipient?.email) {
+        sendRoyaltyEmail({
+          to: recipient.email,
+          momentTitle: ownership.moment.title,
+          momentSlug: ownership.moment.slug,
+          royaltyAmountCents: royaltyAmount,
+          salePriceCents: offer.amount,
+        }).catch(console.error)
+      }
+    }
 
     revalidatePath('/vault')
     revalidatePath('/market')

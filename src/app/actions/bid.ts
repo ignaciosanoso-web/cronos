@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import { pusher } from '@/lib/pusher'
 import { revalidatePath } from 'next/cache'
+import { sendOutbidEmail } from '@/lib/email'
 import type { Tier } from '@prisma/client'
 
 const TIER_MECHANICS: Record<Tier, { triggerMin: number; extensionMin: number }> = {
@@ -37,7 +38,7 @@ export async function placeBid(
     const auction = await prisma.auction.findUnique({
       where: { id: auctionId },
       include: {
-        moment: { select: { tier: true, slug: true } },
+        moment: { select: { tier: true, slug: true, title: true } },
         currentBid: {
           select: { id: true, amount: true, userId: true, stripePaymentIntentId: true },
         },
@@ -114,6 +115,22 @@ export async function placeBid(
         await stripe.paymentIntents.cancel(oldPaymentIntentId)
       } catch (e) {
         console.error('[placeBid] No se pudo cancelar el PI anterior:', e)
+      }
+    }
+
+    // Email al pujador superado — fire and forget
+    if (auction.currentBid?.userId) {
+      const outbidUser = await prisma.user.findUnique({
+        where: { id: auction.currentBid.userId },
+        select: { email: true },
+      })
+      if (outbidUser?.email) {
+        sendOutbidEmail({
+          to: outbidUser.email,
+          momentTitle: auction.moment.title,
+          momentSlug: auction.moment.slug,
+          newAmountCents: amountCents,
+        }).catch(console.error)
       }
     }
 

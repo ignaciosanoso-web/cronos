@@ -1,6 +1,10 @@
 import { inngest } from '@/lib/inngest'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
+import {
+  sendAuctionWonEmail,
+  sendAuctionLostEmail,
+} from '@/lib/email'
 
 const CRONOS_FEE_BPS = 1000 // 10 %
 
@@ -221,6 +225,64 @@ export const closeAuction = inngest.createFunction(
           }
         }
       })
+    })
+
+    // ── Emails post-cierre ───────────────────────────────────────────────────
+    await step.run('send-emails', async () => {
+      const outbidUserIds = [
+        ...new Set(auction.bids.map((b) => b.userId).filter((id) => id !== winner.userId)),
+      ]
+
+      // Fetch all emails in one query
+      const userIds = [winner.userId, ...outbidUserIds]
+      const users = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, email: true },
+      })
+      const emailMap = new Map(users.map((u) => [u.id, u.email]))
+
+      // Fetch ownership for certificate link
+      const ownership = await prisma.ownership.findUnique({
+        where: {
+          momentId_serialNumber: {
+            momentId: auction.moment.id,
+            serialNumber: auction.serialNumber,
+          },
+        },
+        select: { id: true },
+      })
+
+      const momentFull = await prisma.moment.findUnique({
+        where: { id: auction.moment.id },
+        select: { title: true, slug: true, totalCirculation: true },
+      })
+
+      const winnerEmail = emailMap.get(winner.userId)
+      if (winnerEmail && momentFull && ownership) {
+        await sendAuctionWonEmail({
+          to: winnerEmail,
+          momentTitle: momentFull.title,
+          momentSlug: momentFull.slug,
+          serialNumber: auction.serialNumber,
+          totalCirculation: momentFull.totalCirculation,
+          amountCents: winner.amount,
+          ownershipId: ownership.id,
+        })
+      }
+
+      // Emails a perdedores
+      await Promise.all(
+        outbidUserIds.map(async (userId) => {
+          const email = emailMap.get(userId)
+          if (email && momentFull) {
+            await sendAuctionLostEmail({
+              to: email,
+              momentTitle: momentFull.title,
+              momentSlug: momentFull.slug,
+            })
+          }
+        })
+      )
     })
 
     return { result: 'CLOSED_WON', winner: winner.userId, amountCents: winner.amount }
