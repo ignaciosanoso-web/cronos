@@ -166,6 +166,61 @@ export async function sendAuctionLostEmail(opts: {
   await send(opts.to, `Subasta cerrada: ${opts.momentTitle}`, html)
 }
 
+export async function sendMiticoAlertEmail(opts: {
+  to: string
+  momentTitle: string
+  momentSlug: string
+  startPriceCents: number
+  closesAt: string
+}) {
+  const price = (opts.startPriceCents / 100).toLocaleString('es-ES')
+  const url = `${process.env.NEXTAUTH_URL}/momento/${opts.momentSlug}`
+  const closes = new Date(opts.closesAt).toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  const html = base(`
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#f2ca50;border:1px solid #735c00;padding:6px 16px;">
+        ◆ Tier Mítico
+      </span>
+    </div>
+
+    <h1 style="margin:0 0 8px;font-size:30px;color:#e5e2e1;line-height:1.2;text-align:center;">
+      Ha salido a subasta un momento mítico
+    </h1>
+    <p style="color:#99907c;font-size:14px;margin:0 0 32px;font-family:sans-serif;text-align:center;">
+      Solo se subastan unos pocos ejemplares. Este puede ser el tuyo.
+    </p>
+
+    <div style="border:1px solid #f2ca50;background:#0e0e0e;padding:32px;margin-bottom:32px;text-align:center;">
+      <h2 style="margin:0 0 24px;font-size:26px;color:#f2ca50;">${opts.momentTitle}</h2>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          ${stat('Precio de salida', `${price} €`)}
+          ${stat('Cierre', closes)}
+        </tr>
+      </table>
+    </div>
+
+    <p style="color:#d0c5af;font-size:13px;line-height:1.6;font-family:sans-serif;margin:0 0 24px;">
+      Los momentos <strong style="color:#f2ca50;">Míticos</strong> tienen circulación extremadamente
+      limitada. El ganador recibe un royalty <strong style="color:#e5e2e1;">del 5% de forma vitalicia</strong>
+      sobre cada reventa futura del ejemplar.
+    </p>
+
+    <div style="text-align:center;">
+      ${btn(url, '◆ Ver subasta y pujar')}
+    </div>
+  `)
+
+  await send(opts.to, `◆ Subasta Mítica: ${opts.momentTitle}`, html)
+}
+
 export async function sendRoyaltyEmail(opts: {
   to: string
   momentTitle: string

@@ -3,6 +3,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { sendMiticoAlertEmail } from '@/lib/email'
 
 async function requireAdmin() {
   const session = await auth()
@@ -65,6 +66,25 @@ export async function createAuction(
         where: { id: data.momentId },
         data: { status: 'IN_AUCTION' },
       })
+    }
+
+    // Si el momento es MÍTICO, enviar email de alerta a todos los usuarios — fire and forget
+    if (moment.tier === 'MITICO') {
+      prisma.user.findMany({ select: { email: true } }).then((users) => {
+        Promise.all(
+          users
+            .filter((u) => u.email)
+            .map((u) =>
+              sendMiticoAlertEmail({
+                to: u.email!,
+                momentTitle: moment.title,
+                momentSlug: moment.slug,
+                startPriceCents: Math.round(data.startPrice * 100),
+                closesAt: closesAt.toISOString(),
+              })
+            )
+        ).catch(console.error)
+      }).catch(console.error)
     }
 
     revalidatePath('/admin/subastas')

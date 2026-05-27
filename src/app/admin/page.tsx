@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 import { TierBadge } from '@/components/ui/TierBadge'
+import { TestEmailsButton } from '@/components/admin/TestEmailsButton'
 import Link from 'next/link'
 import type { Tier } from '@prisma/client'
 
@@ -161,6 +162,10 @@ export default async function AdminDashboard() {
         <Link href="/admin/subastas" className="btn-secondary text-sm px-4 py-2">
           Ver Subastas
         </Link>
+        <Link href="/admin/usuarios" className="btn-secondary text-sm px-4 py-2">
+          Ver Usuarios
+        </Link>
+        <TestEmailsButton />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
