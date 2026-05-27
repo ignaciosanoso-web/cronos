@@ -312,10 +312,14 @@ export default async function HomePage() {
             <LabelCaps className="text-[#99907c] block mb-4">Legal</LabelCaps>
             <ul className="space-y-2 text-sm text-[#a8a39e]">
               <li>
-                <span className="cursor-not-allowed opacity-50">Términos</span>
+                <Link href="/terminos" className="hover:text-[#f2ca50] transition-colors">
+                  Términos
+                </Link>
               </li>
               <li>
-                <span className="cursor-not-allowed opacity-50">Privacidad</span>
+                <Link href="/privacidad" className="hover:text-[#f2ca50] transition-colors">
+                  Privacidad
+                </Link>
               </li>
             </ul>
           </div>

@@ -88,9 +88,9 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
             {/* Profile / Login */}
             {isAuthenticated ? (
               <Link
-                href="/vault"
+                href="/perfil"
                 className="hidden md:block text-[#e5e2e1] hover:text-[#f2ca50] transition-colors"
-                title="Mi bóveda"
+                title="Mi perfil"
               >
                 <svg
                   width="20"
@@ -188,6 +188,15 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
                     {unreadCount}
                   </span>
                 )}
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link
+                href="/perfil"
+                onClick={() => setMobileOpen(false)}
+                className="font-serif text-3xl font-semibold py-4 border-b border-[#2a2a2a] hover:text-[#f2ca50] transition-colors"
+              >
+                Mi Perfil
               </Link>
             )}
             {isAdmin && (

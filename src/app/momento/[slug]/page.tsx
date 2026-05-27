@@ -6,6 +6,7 @@ import { TierBadge } from '@/components/ui/TierBadge'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 import { AuctionLive } from '@/components/auction/AuctionLive'
+import { ShareButton } from '@/components/ui/ShareButton'
 import type { Tier } from '@prisma/client'
 
 const ERA_LABELS: Record<string, string> = {
@@ -49,9 +50,24 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const moment = await getMoment(slug)
   if (!moment) return {}
+  const description = moment.description.substring(0, 160)
+  const images = moment.imageUrl ? [{ url: moment.imageUrl, width: 1200, height: 630 }] : []
   return {
     title: `${moment.title} — Cronos`,
-    description: moment.description.substring(0, 160),
+    description,
+    openGraph: {
+      title: `${moment.title} — Cronos`,
+      description,
+      images,
+      type: 'website',
+      siteName: 'Cronos · El Archivo del Tiempo',
+    },
+    twitter: {
+      card: images.length > 0 ? 'summary_large_image' : 'summary',
+      title: `${moment.title} — Cronos`,
+      description,
+      images: moment.imageUrl ? [moment.imageUrl] : [],
+    },
   }
 }
 
@@ -244,6 +260,12 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ s
               <span>{moment.location}</span>
             </div>
           )}
+
+          {/* Share */}
+          <div className="mt-8 pt-6 border-t border-[#4d4635]">
+            <LabelCaps className="text-[#4d4635] block mb-3">Compartir este momento</LabelCaps>
+            <ShareButton title={moment.title} slug={moment.slug} />
+          </div>
         </div>
       </div>
 

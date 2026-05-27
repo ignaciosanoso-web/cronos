@@ -108,6 +108,12 @@ export default async function VaultPage() {
           >
             Ver perfil público →
           </Link>
+          <Link
+            href="/perfil"
+            className="text-[11px] font-semibold tracking-[0.15em] uppercase text-[#4d4635] hover:text-[#f2ca50] transition-colors"
+          >
+            Editar perfil →
+          </Link>
         </div>
       </div>
 
