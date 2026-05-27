@@ -4,9 +4,9 @@ import { AuctionForm } from '@/components/admin/AuctionForm'
 import Link from 'next/link'
 
 export default async function NuevaSubastaPage() {
-  // Solo momentos que pueden tener una nueva subasta
+  // Todos los momentos publicados pueden tener nuevas subastas (cada serial number es una copia independiente)
   const moments = await prisma.moment.findMany({
-    where: { status: { in: ['DRAFT', 'SCHEDULED', 'IN_AUCTION'] } },
+    where: { status: { not: 'DRAFT' } },
     orderBy: { title: 'asc' },
     select: { id: true, title: true, tier: true, totalCirculation: true, status: true },
   })
