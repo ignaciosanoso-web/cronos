@@ -10,7 +10,9 @@
     "prepare": "husky",
     "seed": "tsx prisma/seed.ts",
     "open-auction": "tsx scripts/open-test-auction.ts",
-    "inngest": "npx inngest-cli@latest dev"
+    "inngest": "npx inngest-cli@latest dev",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "prisma": {
     "seed": "npm run seed"
@@ -57,6 +59,7 @@
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsx": "^4.22.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }
