@@ -70,6 +70,7 @@ export default async function AdminMomentos({
           name="q"
           defaultValue={query}
           placeholder="Buscar por título…"
+          aria-label="Buscar momentos por título"
           className="flex-1 bg-[#0e0e0e] border border-[#4d4635] text-[#e5e2e1] px-4 py-2 text-sm focus:outline-none focus:border-[#f2ca50] placeholder:text-[#4d4635]"
         />
         <button type="submit" className="btn-secondary text-sm px-4 py-2">

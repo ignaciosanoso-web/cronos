@@ -34,6 +34,7 @@ export function TransferButton({ ownershipId, momentTitle }: TransferButtonProps
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email del curador"
+            aria-label={`Email del curador destino para transferir ${momentTitle}`}
             className="flex-1 bg-[#0e0e0e] border border-[#4d4635] text-[#e5e2e1] px-3 py-1.5 text-xs focus:outline-none focus:border-[#f2ca50]"
           />
           <button

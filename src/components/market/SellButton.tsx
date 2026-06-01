@@ -54,6 +54,7 @@ export function SellButton({ ownershipId, activeListingId, askingPrice }: SellBu
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             placeholder="Precio (€)"
+            aria-label="Precio de venta en euros"
             className="flex-1 bg-[#0e0e0e] border border-[#4d4635] text-[#e5e2e1] px-3 py-1.5 text-xs focus:outline-none focus:border-[#f2ca50]"
           />
           <button
