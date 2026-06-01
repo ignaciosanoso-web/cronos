@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendMomentReceivedEmail } from '@/lib/email'
+import { normalizeEmail, isValidEmail } from '@/lib/validators'
 
 export async function toggleOwnershipPublic(ownershipId: string, isPublic: boolean) {
   const session = await auth()
@@ -36,8 +37,8 @@ export async function transferOwnership(
   const session = await auth()
   if (!session?.user?.id) return { error: 'No autenticado' }
 
-  const email = recipientEmail.trim().toLowerCase()
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const email = normalizeEmail(recipientEmail)
+  if (!isValidEmail(email)) {
     return { error: 'Introduce un email válido.' }
   }
 
