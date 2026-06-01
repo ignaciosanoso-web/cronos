@@ -4,6 +4,7 @@ import { LabelCaps } from '@/components/ui/LabelCaps'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { TierBadge } from '@/components/ui/TierBadge'
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback'
+import { Pagination } from '@/components/ui/Pagination'
 
 export const metadata = {
   title: 'Mercado Secundario — Cronos',
@@ -20,10 +21,14 @@ const ERA_LABELS: Record<string, string> = {
   ERA_DIGITAL: 'Era Digital',
 }
 
-async function getListings() {
+const PAGE_SIZE = 24
+
+async function getListings(page: number) {
   return prisma.listing.findMany({
     where: { status: 'ACTIVE' },
     orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
     include: {
       seller: { select: { id: true, name: true, displayName: true } },
       ownership: {
@@ -46,8 +51,18 @@ async function getListings() {
   })
 }
 
-export default async function MarketPage() {
-  const listings = await getListings()
+export default async function MarketPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
+  const { page: pageParam } = await searchParams
+  const requestedPage = Math.max(1, Number(pageParam) || 1)
+
+  const total = await prisma.listing.count({ where: { status: 'ACTIVE' } })
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const page = Math.min(requestedPage, totalPages)
+  const listings = await getListings(page)
 
   return (
     <main className="max-w-[1440px] mx-auto px-6 md:px-8 py-16">
@@ -73,7 +88,8 @@ export default async function MarketPage() {
       ) : (
         <>
           <LabelCaps className="text-[#4d4635] block mb-6">
-            {listings.length} {listings.length === 1 ? 'listing activo' : 'listings activos'}
+            {total} {total === 1 ? 'listing activo' : 'listings activos'}
+            {totalPages > 1 && ` · página ${page} de ${totalPages}`}
           </LabelCaps>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-[#4d4635]">
             {listings.map((listing) => {
@@ -151,6 +167,8 @@ export default async function MarketPage() {
               )
             })}
           </div>
+
+          <Pagination currentPage={page} totalPages={totalPages} basePath="/market" />
         </>
       )}
     </main>

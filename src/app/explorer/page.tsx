@@ -3,37 +3,47 @@ import { prisma } from '@/lib/prisma'
 import { MomentCard } from '@/components/moment/MomentCard'
 import { ExplorerFilters } from '@/components/explorer/ExplorerFilters'
 import { LabelCaps } from '@/components/ui/LabelCaps'
-import type { Era, Tier, Category } from '@prisma/client'
+import { Pagination } from '@/components/ui/Pagination'
+import type { Era, Tier, Category, Prisma } from '@prisma/client'
 
 export const metadata = {
   title: 'Explorador de Épocas — Cronos',
   description: 'Navega por todos los momentos históricos. Filtra por era, tier y categoría.',
 }
 
+const PAGE_SIZE = 24
+
 interface SearchParams {
   era?: string
   tier?: string
   cat?: string
   q?: string
+  page?: string
 }
 
-async function getMoments(filters: SearchParams) {
+function buildWhere(filters: SearchParams): Prisma.MomentWhereInput {
+  return {
+    status: { in: ['IN_AUCTION', 'IN_VAULT', 'SCHEDULED'] },
+    ...(filters.era ? { era: filters.era as Era } : {}),
+    ...(filters.tier ? { tier: filters.tier as Tier } : {}),
+    ...(filters.cat ? { category: filters.cat as Category } : {}),
+    ...(filters.q
+      ? {
+          OR: [
+            { title: { contains: filters.q, mode: 'insensitive' } },
+            { description: { contains: filters.q, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  }
+}
+
+async function getMoments(where: Prisma.MomentWhereInput, page: number) {
   return prisma.moment.findMany({
-    where: {
-      status: { in: ['IN_AUCTION', 'IN_VAULT', 'SCHEDULED'] },
-      ...(filters.era ? { era: filters.era as Era } : {}),
-      ...(filters.tier ? { tier: filters.tier as Tier } : {}),
-      ...(filters.cat ? { category: filters.cat as Category } : {}),
-      ...(filters.q
-        ? {
-            OR: [
-              { title: { contains: filters.q, mode: 'insensitive' } },
-              { description: { contains: filters.q, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    },
+    where,
     orderBy: [{ tier: 'asc' }, { year: 'asc' }],
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
     select: {
       slug: true,
       title: true,
@@ -56,7 +66,13 @@ export default async function ExplorerPage({
   searchParams: Promise<SearchParams>
 }) {
   const filters = await searchParams
-  const moments = await getMoments(filters)
+  const where = buildWhere(filters)
+  const requestedPage = Math.max(1, Number(filters.page) || 1)
+
+  const total = await prisma.moment.count({ where })
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const page = Math.min(requestedPage, totalPages)
+  const moments = await getMoments(where, page)
 
   return (
     <main className="max-w-[1440px] mx-auto px-6 md:px-8 py-16">
@@ -73,7 +89,8 @@ export default async function ExplorerPage({
 
       <div className="mt-10">
         <LabelCaps className="text-[#4d4635] block mb-6">
-          {moments.length} {moments.length === 1 ? 'momento encontrado' : 'momentos encontrados'}
+          {total} {total === 1 ? 'momento encontrado' : 'momentos encontrados'}
+          {totalPages > 1 && ` · página ${page} de ${totalPages}`}
         </LabelCaps>
 
         {moments.length > 0 ? (
@@ -89,6 +106,13 @@ export default async function ExplorerPage({
             </p>
           </div>
         )}
+
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          basePath="/explorer"
+          params={{ era: filters.era, tier: filters.tier, cat: filters.cat, q: filters.q }}
+        />
       </div>
     </main>
   )
