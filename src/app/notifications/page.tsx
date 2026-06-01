@@ -89,11 +89,6 @@ export default async function NotificationsPage() {
       ) : (
         <div className="space-y-px">
           {notifications.map((notif) => {
-            const meta = KIND_META[notif.kind] ?? {
-              label: notif.kind,
-              icon: '◆',
-              color: 'text-[#99907c]',
-            }
             const payload = notif.payload as Record<string, unknown>
             const isUnread = !notif.sentAt
             const momentSlug = payload.momentSlug as string | undefined
@@ -101,6 +96,17 @@ export default async function NotificationsPage() {
             const amountCents = payload.amountCents as number | undefined
             const royaltyAmountCents = payload.royaltyAmountCents as number | undefined
             const salePriceCents = payload.salePriceCents as number | undefined
+            const payloadType = payload.type as string | undefined
+            const fromName = payload.fromName as string | undefined
+            const isTransfer = notif.kind === 'AUCTION_WON' && payloadType === 'TRANSFER'
+
+            const meta = isTransfer
+              ? { label: 'Momento Recibido', icon: '🎁', color: 'text-[#f2ca50]' }
+              : (KIND_META[notif.kind] ?? {
+                  label: notif.kind,
+                  icon: '◆',
+                  color: 'text-[#99907c]',
+                })
 
             return (
               <div
@@ -131,7 +137,20 @@ export default async function NotificationsPage() {
                     </span>
                   </div>
 
-                  {notif.kind === 'AUCTION_WON' && (
+                  {isTransfer && (
+                    <p className="text-sm text-[#d0c5af]">
+                      {fromName ?? 'Otro curador'} te ha transferido
+                      {momentTitle && <span className="text-[#e5e2e1]"> {momentTitle}</span>}.{' '}
+                      <Link
+                        href="/vault"
+                        className="underline underline-offset-2 hover:text-[#f2ca50] transition-colors"
+                      >
+                        Ver mi bóveda →
+                      </Link>
+                    </p>
+                  )}
+
+                  {notif.kind === 'AUCTION_WON' && !isTransfer && (
                     <p className="text-sm text-[#d0c5af]">
                       Has ganado la subasta
                       {amountCents && (
