@@ -17,10 +17,35 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'],
 })
 
+const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://cronos.app'
+
 export const metadata: Metadata = {
-  title: 'Cronos — El Mercado del Tiempo',
+  title: {
+    default: 'Cronos — El Mercado del Tiempo',
+    template: '%s — Cronos',
+  },
   description:
     'Adquiere derechos exclusivos sobre los momentos más cruciales de la historia. La primera casa de subastas de momentos históricos.',
+  metadataBase: new URL(BASE_URL),
+  openGraph: {
+    title: 'Cronos — El Mercado del Tiempo',
+    description:
+      'Adquiere derechos exclusivos sobre los momentos más cruciales de la historia. La primera casa de subastas de momentos históricos.',
+    url: BASE_URL,
+    siteName: 'Cronos · El Archivo del Tiempo',
+    locale: 'es_ES',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Cronos — El Mercado del Tiempo',
+    description:
+      'Adquiere derechos exclusivos sobre los momentos más cruciales de la historia. La primera casa de subastas de momentos históricos.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 async function getUnreadCount(userId?: string): Promise<number> {
@@ -41,7 +66,11 @@ export default async function RootLayout({
   return (
     <html lang="es" className={`${playfair.variable} ${inter.variable}`}>
       <body className="antialiased">
-        <Header unreadCount={unreadCount} isAuthenticated={!!session?.user} isAdmin={session?.user?.role === 'ADMIN'} />
+        <Header
+          unreadCount={unreadCount}
+          isAuthenticated={!!session?.user}
+          isAdmin={session?.user?.role === 'ADMIN'}
+        />
         {children}
       </body>
     </html>

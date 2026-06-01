@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { TierBadge } from '@/components/ui/TierBadge'
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback'
 
 export const metadata = {
   title: 'Mercado Secundario — Cronos',
@@ -74,7 +75,7 @@ export default async function MarketPage() {
           <LabelCaps className="text-[#4d4635] block mb-6">
             {listings.length} {listings.length === 1 ? 'listing activo' : 'listings activos'}
           </LabelCaps>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-[#4d4635]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-[#4d4635]">
             {listings.map((listing) => {
               const { moment, serialNumber } = listing.ownership
               const yearLabel =
@@ -82,26 +83,29 @@ export default async function MarketPage() {
               const priceEur = (listing.askingPrice / 100).toLocaleString('es-ES')
               const sellerName = listing.seller.displayName ?? listing.seller.name ?? 'Curador'
 
+              const imagePlaceholder = (
+                <div className="w-full h-full bg-[#0e0e0e] flex flex-col items-center justify-center gap-2">
+                  <span className="font-serif font-bold text-[#2a2a2a] text-4xl">{yearLabel}</span>
+                  <span className="font-semibold tracking-[0.2em] uppercase text-[#2a2a2a] text-[10px]">
+                    {ERA_LABELS[moment.era]}
+                  </span>
+                </div>
+              )
+
               return (
                 <Link
                   key={listing.id}
                   href={`/market/${listing.id}`}
-                  className="group bg-[#131313] block hover:bg-[#1c1b1b] transition-colors"
+                  className="group bg-[#131313] block hover:bg-[#1c1b1b] transition-colors border-b border-r border-[#4d4635]"
                 >
                   {/* Imagen */}
                   <div className="aspect-[4/3] bg-[#1c1b1b] overflow-hidden relative">
-                    {moment.imageUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={moment.imageUrl}
-                        alt={moment.title}
-                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="label-caps text-[#4d4635] text-[9px]">Sin imagen</span>
-                      </div>
-                    )}
+                    <ImageWithFallback
+                      src={moment.imageUrl ?? ''}
+                      alt={moment.title}
+                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                      fallback={imagePlaceholder}
+                    />
                     <div className="absolute top-3 left-3">
                       <TierBadge tier={moment.tier} className="!bg-[#131313]/80" />
                     </div>

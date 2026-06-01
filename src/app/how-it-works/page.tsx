@@ -79,7 +79,7 @@ const FAQS = [
   },
   {
     q: '¿Cuál es la comisión de Cronos?',
-    a: 'No cobramos por pujar ni por mantener tu Bóveda. Cobramos una comisión del 8% sobre cada venta del mercado secundario, repartida entre vendedor y comprador. En las subastas inaugurales, Cronos retiene el 15% del precio final como tasa de acuñación.',
+    a: 'No cobramos por pujar ni por mantener tu Bóveda. Cobramos una comisión del 8% sobre cada venta del mercado secundario. En las subastas inaugurales, Cronos retiene el 10% del precio final como tasa de acuñación.',
   },
   {
     q: '¿Qué pasa si gano la subasta y no quiero pagar?',

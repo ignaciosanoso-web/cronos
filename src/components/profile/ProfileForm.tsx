@@ -30,7 +30,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const res = await fetch('/api/upload?type=avatar', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.error) setError(data.error)
       else set('avatarUrl', data.url)
@@ -91,9 +91,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
               {uploading ? (
                 <span className="text-sm text-[#f2ca50]">Subiendo…</span>
               ) : (
-                <span className="text-sm text-[#99907c]">
-                  Arrastra o haz clic para subir foto
-                </span>
+                <span className="text-sm text-[#99907c]">Arrastra o haz clic para subir foto</span>
               )}
               <input
                 id="avatar-upload"
@@ -167,9 +165,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
         >
           {isPending ? 'Guardando…' : 'Guardar cambios'}
         </button>
-        {saved && (
-          <span className="text-sm text-[#5fd97a] font-semibold">✓ Guardado</span>
-        )}
+        {saved && <span className="text-sm text-[#5fd97a] font-semibold">✓ Guardado</span>}
       </div>
     </form>
   )

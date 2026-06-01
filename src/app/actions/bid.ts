@@ -118,20 +118,40 @@ export async function placeBid(
       }
     }
 
-    // Email al pujador superado — fire and forget
+    // Email + notificación al pujador superado — fire and forget
     if (auction.currentBid?.userId) {
-      const outbidUser = await prisma.user.findUnique({
-        where: { id: auction.currentBid.userId },
-        select: { email: true },
-      })
-      if (outbidUser?.email) {
-        sendOutbidEmail({
-          to: outbidUser.email,
-          momentTitle: auction.moment.title,
-          momentSlug: auction.moment.slug,
-          newAmountCents: amountCents,
-        }).catch(console.error)
-      }
+      const outbidUserId = auction.currentBid.userId
+      prisma.notification
+        .create({
+          data: {
+            userId: outbidUserId,
+            kind: 'BID_OUTBID',
+            payload: {
+              auctionId,
+              momentSlug: auction.moment.slug,
+              momentTitle: auction.moment.title,
+              newAmountCents: amountCents,
+            },
+          },
+        })
+        .catch(console.error)
+
+      prisma.user
+        .findUnique({
+          where: { id: outbidUserId },
+          select: { email: true },
+        })
+        .then((outbidUser) => {
+          if (outbidUser?.email) {
+            sendOutbidEmail({
+              to: outbidUser.email,
+              momentTitle: auction.moment.title,
+              momentSlug: auction.moment.slug,
+              newAmountCents: amountCents,
+            }).catch(console.error)
+          }
+        })
+        .catch(console.error)
     }
 
     // Notificar en tiempo real a todos los que están viendo la subasta
