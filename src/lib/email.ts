@@ -166,6 +166,36 @@ export async function sendAuctionLostEmail(opts: {
   await send(opts.to, `Subasta cerrada: ${opts.momentTitle}`, html)
 }
 
+export async function sendMomentReceivedEmail(opts: {
+  to: string
+  momentTitle: string
+  momentSlug: string
+  fromName: string
+}) {
+  const vaultUrl = `${process.env.NEXTAUTH_URL}/vault`
+
+  const html = base(`
+    <h1 style="margin:0 0 8px;font-size:28px;color:#e5e2e1;line-height:1.2;">Has recibido un momento</h1>
+    <p style="color:#99907c;font-size:14px;margin:0 0 32px;font-family:sans-serif;">
+      ${opts.fromName} te ha transferido un fragmento de la historia
+    </p>
+
+    <div style="border:1px solid #f2ca50;background:#0e0e0e;padding:24px;margin-bottom:32px;text-align:center;">
+      <p style="color:#f2ca50;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin:0 0 8px;">Momento recibido</p>
+      <h2 style="margin:0;font-size:24px;color:#e5e2e1;">${opts.momentTitle}</h2>
+    </div>
+
+    <p style="color:#d0c5af;font-size:13px;line-height:1.6;font-family:sans-serif;margin:0 0 24px;">
+      Este momento ya está registrado en tu bóveda a tu nombre. Por privacidad, se ha añadido como
+      <strong style="color:#e5e2e1;">privado</strong> — puedes hacerlo público desde tu bóveda cuando quieras.
+    </p>
+
+    ${btn(vaultUrl, 'Ver mi bóveda →')}
+  `)
+
+  await send(opts.to, `Has recibido: ${opts.momentTitle}`, html)
+}
+
 export async function sendMiticoAlertEmail(opts: {
   to: string
   momentTitle: string

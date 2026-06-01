@@ -2,12 +2,19 @@ import { auth } from '@/lib/auth'
 import { cloudinary } from '@/lib/cloudinary'
 import { NextRequest, NextResponse } from 'next/server'
 
+// ?type=avatar → cualquier usuario autenticado, carpeta cronos/avatars
+// ?type=moment  → solo admins, carpeta cronos/moments (default)
 export async function POST(req: NextRequest) {
-  // Solo admins pueden subir imágenes
   const session = await auth()
   if (!session?.user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-  if (session.user.role !== 'ADMIN')
+
+  const type = req.nextUrl.searchParams.get('type') ?? 'moment'
+
+  if (type === 'moment' && session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const isAvatar = type === 'avatar'
 
   try {
     const formData = await req.formData()
@@ -15,29 +22,36 @@ export async function POST(req: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'No se recibió ningún archivo' }, { status: 400 })
 
-    // Validar tipo y tamaño (máx 8MB)
     if (!file.type.startsWith('image/')) {
       return NextResponse.json({ error: 'Solo se permiten imágenes' }, { status: 400 })
     }
-    if (file.size > 8 * 1024 * 1024) {
-      return NextResponse.json({ error: 'El archivo no puede superar 8MB' }, { status: 400 })
+    // Avatares: máx 2MB · Momentos: máx 8MB
+    const maxBytes = isAvatar ? 2 * 1024 * 1024 : 8 * 1024 * 1024
+    if (file.size > maxBytes) {
+      return NextResponse.json(
+        { error: `El archivo no puede superar ${isAvatar ? '2' : '8'}MB` },
+        { status: 400 }
+      )
     }
 
-    // Convertir File a Buffer
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Subir a Cloudinary
     const result = await new Promise<{ secure_url: string; public_id: string }>(
       (resolve, reject) => {
         cloudinary.uploader
           .upload_stream(
             {
-              folder: 'cronos/moments',
-              transformation: [
-                { width: 1200, height: 900, crop: 'fill', gravity: 'auto' },
-                { quality: 'auto', fetch_format: 'auto' },
-              ],
+              folder: isAvatar ? 'cronos/avatars' : 'cronos/moments',
+              transformation: isAvatar
+                ? [
+                    { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+                    { quality: 'auto', fetch_format: 'auto' },
+                  ]
+                : [
+                    { width: 1200, height: 900, crop: 'fill', gravity: 'auto' },
+                    { quality: 'auto', fetch_format: 'auto' },
+                  ],
             },
             (error, result) => {
               if (error) reject(error)

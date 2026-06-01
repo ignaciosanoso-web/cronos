@@ -65,6 +65,9 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
                 href="/notifications"
                 className="relative hidden md:flex items-center text-[#e5e2e1] hover:text-[#f2ca50] transition-colors"
                 title="Notificaciones"
+                aria-label={
+                  unreadCount > 0 ? `Notificaciones, ${unreadCount} sin leer` : 'Notificaciones'
+                }
               >
                 <svg
                   width="20"
@@ -73,6 +76,7 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
                   stroke="currentColor"
                   strokeWidth="1.5"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -91,6 +95,7 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
                 href="/perfil"
                 className="hidden md:block text-[#e5e2e1] hover:text-[#f2ca50] transition-colors"
                 title="Mi perfil"
+                aria-label="Mi perfil"
               >
                 <svg
                   width="20"
@@ -99,6 +104,7 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
                   stroke="currentColor"
                   strokeWidth="1.5"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <circle cx="12" cy="8" r="4" />
                   <path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
@@ -119,6 +125,7 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
                 onClick={() => signOut({ callbackUrl: '/login' })}
                 className="hidden md:block text-[#4d4635] hover:text-[#ff8a73] transition-colors"
                 title="Cerrar sesión"
+                aria-label="Cerrar sesión"
               >
                 <svg
                   width="18"
@@ -127,6 +134,7 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
                   stroke="currentColor"
                   strokeWidth="1.5"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
@@ -139,6 +147,7 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
               className="md:hidden text-[#e5e2e1] hover:text-[#f2ca50] transition-colors"
               onClick={() => setMobileOpen(true)}
               aria-label="Abrir menú"
+              aria-expanded={mobileOpen}
             >
               <svg
                 width="22"
@@ -147,6 +156,7 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
                 stroke="currentColor"
                 strokeWidth="1.5"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path d="M3 6h18M3 12h18M3 18h18" />
               </svg>
@@ -157,7 +167,12 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
 
       {/* Menú móvil */}
       {mobileOpen && (
-        <div className="fixed inset-0 bg-[#131313] z-[60] px-8 pt-20">
+        <div
+          className="fixed inset-0 bg-[#131313] z-[60] px-8 pt-20"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menú de navegación"
+        >
           <button
             onClick={() => setMobileOpen(false)}
             className="absolute top-6 right-6 text-[#f2ca50] text-3xl leading-none"
@@ -210,7 +225,10 @@ export function Header({ unreadCount = 0, isAuthenticated = false, isAdmin = fal
             )}
             {isAuthenticated ? (
               <button
-                onClick={() => { setMobileOpen(false); signOut({ callbackUrl: '/login' }) }}
+                onClick={() => {
+                  setMobileOpen(false)
+                  signOut({ callbackUrl: '/login' })
+                }}
                 className="font-serif text-3xl font-semibold py-4 text-left text-[#99907c] hover:text-[#ff8a73] transition-colors"
               >
                 Cerrar sesión

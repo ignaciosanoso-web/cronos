@@ -1,12 +1,8 @@
 import { inngest } from '@/lib/inngest'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
-import {
-  sendAuctionWonEmail,
-  sendAuctionLostEmail,
-} from '@/lib/email'
-
-const CRONOS_FEE_BPS = 1000 // 10 %
+import { sendAuctionWonEmail, sendAuctionLostEmail } from '@/lib/email'
+import { calculatePrimaryFee } from '@/lib/fees'
 
 // ─── Scheduler: corre cada minuto y despacha eventos de cierre ───────────────
 
@@ -129,7 +125,7 @@ export const closeAuction = inngest.createFunction(
     })
 
     const grossAmount = winner.amount
-    const cronosFee = Math.round((grossAmount * CRONOS_FEE_BPS) / 10000)
+    const cronosFee = calculatePrimaryFee(grossAmount)
 
     await step.run('finalize-db', async () => {
       const outbidUserIds = [

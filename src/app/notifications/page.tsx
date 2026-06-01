@@ -31,6 +31,11 @@ const KIND_META: Record<string, { label: string; icon: string; color: string }> 
     icon: '⏱',
     color: 'text-[#d0c5af]',
   },
+  ROYALTY_EARNED: {
+    label: 'Royalty Recibido',
+    icon: '💛',
+    color: 'text-[#f2ca50]',
+  },
   EARLY_ACCESS_GRANTED: {
     label: 'Acceso Anticipado',
     icon: '✦',
@@ -84,15 +89,24 @@ export default async function NotificationsPage() {
       ) : (
         <div className="space-y-px">
           {notifications.map((notif) => {
-            const meta = KIND_META[notif.kind] ?? {
-              label: notif.kind,
-              icon: '◆',
-              color: 'text-[#99907c]',
-            }
             const payload = notif.payload as Record<string, unknown>
             const isUnread = !notif.sentAt
             const momentSlug = payload.momentSlug as string | undefined
+            const momentTitle = payload.momentTitle as string | undefined
             const amountCents = payload.amountCents as number | undefined
+            const royaltyAmountCents = payload.royaltyAmountCents as number | undefined
+            const salePriceCents = payload.salePriceCents as number | undefined
+            const payloadType = payload.type as string | undefined
+            const fromName = payload.fromName as string | undefined
+            const isTransfer = notif.kind === 'AUCTION_WON' && payloadType === 'TRANSFER'
+
+            const meta = isTransfer
+              ? { label: 'Momento Recibido', icon: '🎁', color: 'text-[#f2ca50]' }
+              : (KIND_META[notif.kind] ?? {
+                  label: notif.kind,
+                  icon: '◆',
+                  color: 'text-[#99907c]',
+                })
 
             return (
               <div
@@ -123,7 +137,20 @@ export default async function NotificationsPage() {
                     </span>
                   </div>
 
-                  {notif.kind === 'AUCTION_WON' && (
+                  {isTransfer && (
+                    <p className="text-sm text-[#d0c5af]">
+                      {fromName ?? 'Otro curador'} te ha transferido
+                      {momentTitle && <span className="text-[#e5e2e1]"> {momentTitle}</span>}.{' '}
+                      <Link
+                        href="/vault"
+                        className="underline underline-offset-2 hover:text-[#f2ca50] transition-colors"
+                      >
+                        Ver mi bóveda →
+                      </Link>
+                    </p>
+                  )}
+
+                  {notif.kind === 'AUCTION_WON' && !isTransfer && (
                     <p className="text-sm text-[#d0c5af]">
                       Has ganado la subasta
                       {amountCents && (
@@ -172,8 +199,65 @@ export default async function NotificationsPage() {
                     </p>
                   )}
 
-                  {!['AUCTION_WON', 'AUCTION_LOST', 'BID_OUTBID'].includes(notif.kind) && (
-                    <p className="text-sm text-[#99907c]">{JSON.stringify(payload)}</p>
+                  {notif.kind === 'ROYALTY_EARNED' && (
+                    <p className="text-sm text-[#d0c5af]">
+                      Has recibido un royalty de{' '}
+                      {royaltyAmountCents !== undefined && (
+                        <span className="text-[#f2ca50] font-semibold">
+                          +{(royaltyAmountCents / 100).toLocaleString('es-ES')} €
+                        </span>
+                      )}
+                      {salePriceCents !== undefined && (
+                        <span className="text-[#4d4635]">
+                          {' '}
+                          (reventa por {(salePriceCents / 100).toLocaleString('es-ES')} €)
+                        </span>
+                      )}
+                      .{' '}
+                      {momentSlug && (
+                        <Link
+                          href={`/vault`}
+                          className="underline underline-offset-2 hover:text-[#f2ca50] transition-colors"
+                        >
+                          Ver bóveda →
+                        </Link>
+                      )}
+                    </p>
+                  )}
+
+                  {notif.kind === 'AUCTION_EXTENDED' && (
+                    <p className="text-sm text-[#d0c5af]">
+                      Se ha realizado una puja de último momento y la subasta se ha extendido.{' '}
+                      {momentSlug && (
+                        <Link
+                          href={`/momento/${momentSlug}`}
+                          className="underline underline-offset-2 hover:text-[#f2ca50] transition-colors"
+                        >
+                          Ver subasta →
+                        </Link>
+                      )}
+                    </p>
+                  )}
+
+                  {notif.kind === 'PETITION_STATUS_CHANGE' && (
+                    <p className="text-sm text-[#d0c5af]">
+                      El estado de tu petición{momentTitle ? ` "${momentTitle}"` : ''} ha sido
+                      actualizado.
+                    </p>
+                  )}
+
+                  {notif.kind === 'EARLY_ACCESS_GRANTED' && (
+                    <p className="text-sm text-[#d0c5af]">
+                      Tienes acceso anticipado a un nuevo momento.{' '}
+                      {momentSlug && (
+                        <Link
+                          href={`/momento/${momentSlug}`}
+                          className="underline underline-offset-2 hover:text-[#f2ca50] transition-colors"
+                        >
+                          Ver momento →
+                        </Link>
+                      )}
+                    </p>
                   )}
                 </div>
               </div>

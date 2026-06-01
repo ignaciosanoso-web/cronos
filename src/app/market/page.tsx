@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { TierBadge } from '@/components/ui/TierBadge'
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback'
+import { Pagination } from '@/components/ui/Pagination'
 
 export const metadata = {
   title: 'Mercado Secundario — Cronos',
@@ -19,10 +21,14 @@ const ERA_LABELS: Record<string, string> = {
   ERA_DIGITAL: 'Era Digital',
 }
 
-async function getListings() {
+const PAGE_SIZE = 24
+
+async function getListings(page: number) {
   return prisma.listing.findMany({
     where: { status: 'ACTIVE' },
     orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
     include: {
       seller: { select: { id: true, name: true, displayName: true } },
       ownership: {
@@ -45,8 +51,18 @@ async function getListings() {
   })
 }
 
-export default async function MarketPage() {
-  const listings = await getListings()
+export default async function MarketPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
+  const { page: pageParam } = await searchParams
+  const requestedPage = Math.max(1, Number(pageParam) || 1)
+
+  const total = await prisma.listing.count({ where: { status: 'ACTIVE' } })
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const page = Math.min(requestedPage, totalPages)
+  const listings = await getListings(page)
 
   return (
     <main className="max-w-[1440px] mx-auto px-6 md:px-8 py-16">
@@ -72,9 +88,10 @@ export default async function MarketPage() {
       ) : (
         <>
           <LabelCaps className="text-[#4d4635] block mb-6">
-            {listings.length} {listings.length === 1 ? 'listing activo' : 'listings activos'}
+            {total} {total === 1 ? 'listing activo' : 'listings activos'}
+            {totalPages > 1 && ` · página ${page} de ${totalPages}`}
           </LabelCaps>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-[#4d4635]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-[#4d4635]">
             {listings.map((listing) => {
               const { moment, serialNumber } = listing.ownership
               const yearLabel =
@@ -82,26 +99,29 @@ export default async function MarketPage() {
               const priceEur = (listing.askingPrice / 100).toLocaleString('es-ES')
               const sellerName = listing.seller.displayName ?? listing.seller.name ?? 'Curador'
 
+              const imagePlaceholder = (
+                <div className="w-full h-full bg-[#0e0e0e] flex flex-col items-center justify-center gap-2">
+                  <span className="font-serif font-bold text-[#2a2a2a] text-4xl">{yearLabel}</span>
+                  <span className="font-semibold tracking-[0.2em] uppercase text-[#2a2a2a] text-[10px]">
+                    {ERA_LABELS[moment.era]}
+                  </span>
+                </div>
+              )
+
               return (
                 <Link
                   key={listing.id}
                   href={`/market/${listing.id}`}
-                  className="group bg-[#131313] block hover:bg-[#1c1b1b] transition-colors"
+                  className="group bg-[#131313] block hover:bg-[#1c1b1b] transition-colors border-b border-r border-[#4d4635]"
                 >
                   {/* Imagen */}
                   <div className="aspect-[4/3] bg-[#1c1b1b] overflow-hidden relative">
-                    {moment.imageUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={moment.imageUrl}
-                        alt={moment.title}
-                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="label-caps text-[#4d4635] text-[9px]">Sin imagen</span>
-                      </div>
-                    )}
+                    <ImageWithFallback
+                      src={moment.imageUrl ?? ''}
+                      alt={moment.title}
+                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                      fallback={imagePlaceholder}
+                    />
                     <div className="absolute top-3 left-3">
                       <TierBadge tier={moment.tier} className="!bg-[#131313]/80" />
                     </div>
@@ -147,6 +167,8 @@ export default async function MarketPage() {
               )
             })}
           </div>
+
+          <Pagination currentPage={page} totalPages={totalPages} basePath="/market" />
         </>
       )}
     </main>

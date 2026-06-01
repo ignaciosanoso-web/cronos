@@ -6,14 +6,7 @@ import { stripe } from '@/lib/stripe'
 import { pusher } from '@/lib/pusher'
 import { revalidatePath } from 'next/cache'
 import { sendOutbidEmail } from '@/lib/email'
-import type { Tier } from '@prisma/client'
-
-const TIER_MECHANICS: Record<Tier, { triggerMin: number; extensionMin: number }> = {
-  MITICO: { triggerMin: 30, extensionMin: 30 },
-  EXCEPCIONAL: { triggerMin: 15, extensionMin: 15 },
-  RARO: { triggerMin: 10, extensionMin: 10 },
-  COMUN: { triggerMin: 5, extensionMin: 5 },
-}
+import { minimumBid, computeExtension, TIER_MECHANICS } from '@/lib/auction-engine'
 
 type BidResult = { success: true; extended: boolean; extensionMin: number } | { error: string }
 
@@ -56,9 +49,7 @@ export async function placeBid(
       return { error: 'Ya tienes la puja más alta.' }
     }
 
-    const minBid = auction.currentBid
-      ? Math.ceil(auction.currentBid.amount * 1.05)
-      : auction.startPrice
+    const minBid = minimumBid(auction.currentBid?.amount ?? null, auction.startPrice)
 
     if (amountCents < minBid) {
       const minEur = (minBid / 100).toLocaleString('es-ES')
@@ -67,14 +58,10 @@ export async function placeBid(
 
     // Lógica anti-sniping
     const mechanics = TIER_MECHANICS[auction.moment.tier]
-    const triggerMs = mechanics.triggerMin * 60 * 1000
-    const extensionMs = mechanics.extensionMin * 60 * 1000
-    const timeLeft = auction.closesAt.getTime() - Date.now()
-
-    const triggeredExtension = timeLeft <= triggerMs
-    const newClosesAt = triggeredExtension
-      ? new Date(Math.max(auction.closesAt.getTime(), Date.now() + extensionMs))
-      : auction.closesAt
+    const { triggeredExtension, newClosesAt } = computeExtension(
+      auction.moment.tier,
+      auction.closesAt
+    )
     const newStatus = triggeredExtension ? ('EXTENDING' as const) : auction.status
 
     const oldPaymentIntentId = auction.currentBid?.stripePaymentIntentId ?? null
@@ -118,20 +105,40 @@ export async function placeBid(
       }
     }
 
-    // Email al pujador superado — fire and forget
+    // Email + notificación al pujador superado — fire and forget
     if (auction.currentBid?.userId) {
-      const outbidUser = await prisma.user.findUnique({
-        where: { id: auction.currentBid.userId },
-        select: { email: true },
-      })
-      if (outbidUser?.email) {
-        sendOutbidEmail({
-          to: outbidUser.email,
-          momentTitle: auction.moment.title,
-          momentSlug: auction.moment.slug,
-          newAmountCents: amountCents,
-        }).catch(console.error)
-      }
+      const outbidUserId = auction.currentBid.userId
+      prisma.notification
+        .create({
+          data: {
+            userId: outbidUserId,
+            kind: 'BID_OUTBID',
+            payload: {
+              auctionId,
+              momentSlug: auction.moment.slug,
+              momentTitle: auction.moment.title,
+              newAmountCents: amountCents,
+            },
+          },
+        })
+        .catch(console.error)
+
+      prisma.user
+        .findUnique({
+          where: { id: outbidUserId },
+          select: { email: true },
+        })
+        .then((outbidUser) => {
+          if (outbidUser?.email) {
+            sendOutbidEmail({
+              to: outbidUser.email,
+              momentTitle: auction.moment.title,
+              momentSlug: auction.moment.slug,
+              newAmountCents: amountCents,
+            }).catch(console.error)
+          }
+        })
+        .catch(console.error)
     }
 
     // Notificar en tiempo real a todos los que están viendo la subasta

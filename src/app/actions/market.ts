@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { sendRoyaltyEmail } from '@/lib/email'
+import { calculateSecondaryFees } from '@/lib/fees'
+import { parseEurosToCents, cleanText } from '@/lib/validators'
 
 async function requireUser() {
   const session = await auth()
@@ -27,11 +29,14 @@ export async function createListing(
     if (ownership.userId !== user.id) return { error: 'No eres el propietario.' }
     if (ownership.listings.length > 0) return { error: 'Este ejemplar ya está en venta.' }
 
+    const askingPrice = parseEurosToCents(askingPriceEur)
+    if (askingPrice == null) return { error: 'El precio debe ser de al menos 1 €.' }
+
     const listing = await prisma.listing.create({
       data: {
         ownershipId,
         sellerId: user.id,
-        askingPrice: Math.round(askingPriceEur * 100),
+        askingPrice,
         status: 'ACTIVE',
       },
     })
@@ -92,8 +97,8 @@ export async function makeOffer(
     if (listing.status !== 'ACTIVE') return { error: 'Este listing ya no está activo.' }
     if (listing.sellerId === user.id) return { error: 'No puedes hacerte una oferta a ti mismo.' }
 
-    const cents = Math.round(amountEur * 100)
-    if (cents < 100) return { error: 'La oferta mínima es 1 €.' }
+    const cents = parseEurosToCents(amountEur)
+    if (cents == null) return { error: 'La oferta mínima es 1 €.' }
 
     // Solo 1 oferta activa por usuario por listing
     const existing = await prisma.offer.findFirst({
@@ -109,7 +114,7 @@ export async function makeOffer(
         listingId,
         buyerId: user.id,
         amount: cents,
-        message: message?.trim() || null,
+        message: cleanText(message),
         expiresAt,
         status: 'PENDING',
       },
@@ -141,18 +146,16 @@ export async function acceptOffer(offerId: string): Promise<{ success: true } | 
 
     const { listing } = offer
     const ownership = listing.ownership
-    const CRONOS_FEE_BPS = 800  // 8% — comisión de plataforma
-    const ROYALTY_BPS = 500     // 5% — royalty al primer propietario
 
     // El primer propietario es quien ganó la subasta original
     const firstOwnerId = ownership.originalAdquirentId ?? ownership.userId
     // Solo hay royalty si el vendedor NO es el primer propietario
-    const royaltyRecipientId = firstOwnerId !== user.id ? firstOwnerId : null
-    const royaltyAmount = royaltyRecipientId
-      ? Math.round((offer.amount * ROYALTY_BPS) / 10000)
-      : 0
-    const cronosFee = Math.round((offer.amount * CRONOS_FEE_BPS) / 10000)
-    const sellerNet = offer.amount - cronosFee - royaltyAmount
+    const sellerIsFirstOwner = firstOwnerId === user.id
+    const royaltyRecipientId = sellerIsFirstOwner ? null : firstOwnerId
+    const { cronosFee, royaltyAmount, sellerNet } = calculateSecondaryFees(
+      offer.amount,
+      sellerIsFirstOwner
+    )
 
     await prisma.$transaction(async (tx) => {
       // 1. Transferir propiedad — preservar el primer propietario original

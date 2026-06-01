@@ -7,6 +7,7 @@ import { GoldDivider } from '@/components/ui/GoldDivider'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 import { SellButton } from '@/components/market/SellButton'
 import { TogglePublicButton } from '@/components/vault/TogglePublicButton'
+import { TransferButton } from '@/components/vault/TransferButton'
 
 export const metadata = {
   title: 'La Bóveda — Cronos',
@@ -86,7 +87,8 @@ export default async function VaultPage() {
   const session = await auth()
   if (!session?.user) redirect('/login')
 
-  const { ownerships, totalValue, yearSpan, royalties, totalRoyalties, completedEras } = await getVaultData(session.user.id)
+  const { ownerships, totalValue, yearSpan, royalties, totalRoyalties, completedEras } =
+    await getVaultData(session.user.id)
   const totalValueEur = (totalValue / 100).toLocaleString('es-ES')
   const totalRoyaltiesEur = (totalRoyalties / 100).toLocaleString('es-ES')
 
@@ -150,7 +152,9 @@ export default async function VaultPage() {
       {/* Colecciones completas */}
       {completedEras.length > 0 && (
         <div className="mb-12">
-          <h2 className="font-serif text-2xl font-bold mb-4 text-[#e5e2e1]">Colecciones Completas</h2>
+          <h2 className="font-serif text-2xl font-bold mb-4 text-[#e5e2e1]">
+            Colecciones Completas
+          </h2>
           <div className="flex flex-wrap gap-3">
             {completedEras.map((era) => (
               <div
@@ -202,6 +206,7 @@ export default async function VaultPage() {
                   ownershipId={ownership.id}
                   initialIsPublic={ownership.isPublic}
                 />
+                <TransferButton ownershipId={ownership.id} momentTitle={ownership.moment.title} />
               </div>
             )
           })}

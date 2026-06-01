@@ -6,6 +6,7 @@ import { TierBadge } from '@/components/ui/TierBadge'
 import { LabelCaps } from '@/components/ui/LabelCaps'
 import { GoldDivider } from '@/components/ui/GoldDivider'
 import { MarketActions } from '@/components/market/MarketActions'
+import { ImageWithFallback } from '@/components/ui/ImageWithFallback'
 
 const ERA_LABELS: Record<string, string> = {
   PREHISTORIA: 'Prehistoria',
@@ -88,18 +89,19 @@ export default async function ListingDetailPage({
         {/* Imagen */}
         <div>
           <div className="relative aspect-[4/3] bg-[#1c1b1b] overflow-hidden">
-            {moment.imageUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={moment.imageUrl}
-                alt={moment.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="label-caps text-[#4d4635]">Sin imagen</span>
-              </div>
-            )}
+            <ImageWithFallback
+              src={moment.imageUrl ?? ''}
+              alt={moment.title}
+              className="w-full h-full object-cover"
+              fallback={
+                <div className="w-full h-full bg-[#0e0e0e] flex flex-col items-center justify-center gap-2">
+                  <span className="font-serif font-bold text-[#2a2a2a] text-5xl">{yearLabel}</span>
+                  <span className="font-semibold tracking-[0.2em] uppercase text-[#2a2a2a] text-[10px]">
+                    {ERA_LABELS[moment.era]}
+                  </span>
+                </div>
+              }
+            />
             <div className="absolute top-4 left-4 flex gap-2">
               <TierBadge tier={moment.tier} className="!bg-[#131313]/80" />
             </div>
@@ -128,7 +130,7 @@ export default async function ListingDetailPage({
           <p className="text-sm text-[#99907c] mb-6">
             Vendido por{' '}
             <Link
-              href={`/curador/${listing.sellerId}`}
+              href={`/curator/${listing.sellerId}`}
               className="hover:text-[#f2ca50] transition-colors"
             >
               {listing.seller.displayName ?? listing.seller.name ?? 'Curador'}
